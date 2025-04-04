@@ -54,13 +54,6 @@ void View::setBackgroundColor(Color color) {
     mBackgroundColor = color;
 }
 
-QGLFormat View::getGLFormat() {
-    QGLFormat qglFormat = QGLFormat::defaultFormat();
-    qglFormat.setVersion(3, 3);
-    qglFormat.setProfile(QGLFormat::CoreProfile);
-    return qglFormat;
-}
-
 View::View() {
     createInputPort<Camera>(0, false);
 
@@ -88,14 +81,10 @@ View::View() {
     if(QThread::currentThread() != QApplication::instance()->thread()) {
         throw Exception("FAST View must be created in the main thread");
     }
-    QGLContext *context = new QGLContext(getGLFormat(), this);
-    context->create(fast::Window::getSecondaryGLContext());
-    this->setContext(context);
-    if(!context->isValid() || !context->isSharing()) {
-        throw Exception("The custom Qt GL context in fast::View is invalid!");
-    }
 
-    QObject::connect(this, &View::redraw, this, &QGLWidget::updateGL, Qt::QueuedConnection); // for doing updateGL in main thread
+    QObject::connect(this, &View::redraw, [=]{
+        ((QOpenGLWidget*)this)->update();
+    }); // for doing updateGL in main thread
 }
 
 void View::scheduleRedraw(bool now) {
@@ -560,7 +549,10 @@ void View::initializeGL() {
 
 
 void View::paintGL() {
+<<<<<<< HEAD
     m_needsToRedraw = false;
+=======
+>>>>>>> a5b0a977... Replaced deprecated QGLWidget and QGLContext.
     mRuntimeManager->startRegularTimer("paint");
 
     if(!mIsIn2DMode && !mVolumeRenderers.empty())
@@ -784,6 +776,7 @@ void View::wheelEvent(QWheelEvent *event) {
 		float currentPosX = (event->position().x()/width())*(mRight - mLeft) + mLeft;
         float currentPosY = (event->position().y()/height())*(mTop - mBottom) + mBottom;
         // First: Zoom towards center
+<<<<<<< HEAD
         float newLeft, newRight, newBottom, newTop;
         if(event->delta() > 0) {
             newLeft = mLeft + targetSizeX*0.5f;
@@ -803,6 +796,18 @@ void View::wheelEvent(QWheelEvent *event) {
         if(m_maximumSize > 0) {
             if(newRight - newLeft > m_maximumSize)
                 return;
+=======
+        if(event->angleDelta().y() > 0) {
+            mLeft = mLeft + targetSizeX*0.5f;
+            mRight = mRight - targetSizeX*0.5f;
+            mBottom = mBottom + targetSizeY * 0.5f;
+            mTop = mTop - targetSizeY*0.5f;
+        } else if(event->angleDelta().y() < 0) {
+            mLeft = mLeft - targetSizeX * 0.5f;;
+            mRight = mRight + targetSizeX*0.5f;
+            mBottom = mBottom - targetSizeY*0.5f;
+            mTop = mTop + targetSizeY*0.5f;
+>>>>>>> a5b0a977... Replaced deprecated QGLWidget and QGLContext.
         }
         mLeft = newLeft;
         mRight = newRight;
@@ -820,10 +825,10 @@ void View::wheelEvent(QWheelEvent *event) {
         mPerspectiveMatrix = loadOrthographicMatrix(mLeft * scalingWidth, mRight * scalingWidth,
                                                     mBottom * scalingHeight, mTop * scalingHeight, zNear, zFar);
     } else {
-        if(event->delta() > 0) {
+        if(event->angleDelta().y() > 0) {
             mCameraPosition[2] += (zFar - zNear) * 0.05f;
             m3DViewingTransformation.pretranslate(Vector3f(0, 0, (zFar - zNear) * 0.05f));
-        } else if(event->delta() < 0) {
+        } else if(event->angleDelta().y() < 0) {
             mCameraPosition[2] += -(zFar - zNear) * 0.05f;
             m3DViewingTransformation.pretranslate(Vector3f(0, 0, -(zFar - zNear) * 0.05f));
         }

@@ -93,7 +93,7 @@ std::vector<OpenCLDevice::pointer> DeviceManager::getDevices(DeviceCriteria crit
     if(enableVisualization) {
 #ifdef FAST_MODULE_VISUALIZATION
         fast::Window::getMainGLContext(); // Still have to create GL context
-		Window::getMainGLContext()->makeCurrent();
+		Window::getMainGLContext()->makeCurrent(nullptr); // If not nullptr here, we get NV-GLX missing on display error
 #endif
 #if defined(__APPLE__) || defined(__MACOSX)
 		CGLContextObj appleContext = CGLGetCurrentContext();
@@ -268,8 +268,8 @@ bool DeviceManager::deviceHasOpenGLInteropCapability(const cl::Device &device, c
     return false;
 #else
     if(platform.getInfo<CL_PLATFORM_VENDOR>().find("NVIDIA") != std::string::npos) {
-        reportInfo() << "NVIDIA platform was detected on linux, disabling OpenGL interop due to error Xlib extension NV-GLX missing" << reportEnd();
-        return false;
+        //reportInfo() << "NVIDIA platform was detected on linux, disabling OpenGL interop due to error Xlib extension NV-GLX missing" << reportEnd();
+        //return false;
     }
 #endif
     // Get the cl_device_id of the device
@@ -283,7 +283,7 @@ bool DeviceManager::deviceHasOpenGLInteropCapability(const cl::Device &device, c
     // Get all devices that are capable of OpenGL interop with this platform
     // Create properties for CL-GL context
 #ifdef FAST_MODULE_VISUALIZATION
-		Window::getMainGLContext()->makeCurrent();
+		Window::getMainGLContext()->makeCurrent(Window::getQSurface());
 #endif
 		unsigned long* glContext;
 #if defined(__APPLE__) || defined(__MACOSX)

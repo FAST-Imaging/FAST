@@ -1,7 +1,6 @@
 #include "ComputationThread.hpp"
 #include "SimpleWindow.hpp"
 #include "View.hpp"
-#include <QGLContext>
 #include <QApplication>
 #include <QMessageBox>
 
@@ -30,8 +29,8 @@ void ComputationThread::run() {
         mIsRunning = true;
         mStop = false;
     }
-    QGLContext* mainGLContext = Window::getMainGLContext();
-    mainGLContext->makeCurrent();
+    auto mainGLContext = Window::getMainGLContext();
+    mainGLContext->makeCurrent(Window::getQSurface());
 
     m_signalFinished = true;
 
@@ -240,7 +239,7 @@ QThread* ComputationThread::start() {
     connect(thread, SIGNAL(finished()), thread, SLOT(deleteLater()));
 
     std::weak_ptr<Window> ptr = std::static_pointer_cast<Window>(mPtr.lock());
-    QGLContext* mainGLContext = Window::getMainGLContext();
+    auto mainGLContext = Window::getMainGLContext();
     if(!mainGLContext->isValid()) {
         throw Exception("QGL context is invalid!");
     }

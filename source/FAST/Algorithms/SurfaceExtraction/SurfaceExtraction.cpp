@@ -353,7 +353,7 @@ void SurfaceExtraction::execute() {
     } else {
         // Transfer OpenCL buffer data to CPU
 #ifdef FAST_MODULE_VISUALIZATION
-        QGLFunctions *fun = Window::getMainGLContext()->functions();
+        QOpenGLFunctions *fun = Window::getMainGLContext()->functions();
         auto data = make_uninitialized_unique<float[]>(9*totalSum);
         queue.enqueueReadBuffer(
                 coordinatesBuffer,

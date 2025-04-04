@@ -4,7 +4,7 @@
 #include "Renderer.hpp"
 #include "Plane.hpp"
 #include <vector>
-#include <QGLWidget>
+#include <QOpenGLWidget>
 #include <QTimer>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -15,7 +15,7 @@ namespace fast {
 class TextRenderer;
 class ComputationThread;
 
-class FAST_EXPORT  View : public QGLWidget, public ProcessObject, protected QOpenGLFunctions_3_3_Core {
+class FAST_EXPORT  View : public QOpenGLWidget, public ProcessObject, protected QOpenGLFunctions_3_3_Core {
     //FAST_OBJECT(View)
     Q_OBJECT
     public:
@@ -47,7 +47,6 @@ class FAST_EXPORT  View : public QGLWidget, public ProcessObject, protected QOpe
 		};
         View();
 		std::vector<Renderer::pointer> getRenderers();
-		static QGLFormat getGLFormat();
 		Matrix4f getViewMatrix() const;
 		Matrix4f getPerspectiveMatrix() const;
 		void loadAttributes() override;
@@ -56,7 +55,7 @@ class FAST_EXPORT  View : public QGLWidget, public ProcessObject, protected QOpe
            Level 0.5 makes images in the view half its size. Level 2 makes images in the view double in size.
          */
         void setZoom(float zoom);
-        QGLWidget* asQGLWidget() { return (QGLWidget*)this; }
+        QOpenGLWidget* asQGLWidget() { return (QOpenGLWidget*)this; }
         /**
          * @brief Enable or disable scalebar
          * @param enable

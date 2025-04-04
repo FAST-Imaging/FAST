@@ -4,7 +4,7 @@
 #include <FAST/Visualization/Renderer.hpp>
 #include <FAST/Data/Color.hpp>
 
-class QGLContext;
+class QOpenGLContext;
 
 namespace fast {
 
@@ -74,7 +74,7 @@ class FAST_EXPORT RenderToImage : public ProcessObject, protected QOpenGLFunctio
 
         float mLeft, mRight, mBottom, mTop; // Used for ortho projection
 
-        QGLContext* m_context;
+        QOpenGLContext* m_context;
     protected:
         void recalculateCamera();
         void getMinMaxFromBoundingBoxes(bool transform, Vector3f& min, Vector3f& max);

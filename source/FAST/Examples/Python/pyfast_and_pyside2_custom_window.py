@@ -14,7 +14,6 @@ if platform.system() != 'Windows':
     import PySide2.QtSvg # Must import this before fast due to conflicting symbols
 import fast # Must import FAST before rest of pyside2
 from PySide2.QtWidgets import *
-from PySide2.QtOpenGL import QGLWidget
 from PySide2.QtCore import Slot
 from shiboken2 import wrapInstance
 
@@ -31,12 +30,12 @@ class Window(QWidget):
 
         # Create FAST view
         self.view = fast.View()
-        self.installEventFilter(wrapInstance(int(self.view.asQGLWidget()), QGLWidget))
+        self.installEventFilter(wrapInstance(int(self.view.asQGLWidget()), QOpenGLWidget))
         self.view.set2DMode()
 
         # Create layout and add widgets
         layout = QVBoxLayout()
-        layout.addWidget(wrapInstance(int(self.view.asQGLWidget()), QGLWidget))
+        layout.addWidget(wrapInstance(int(self.view.asQGLWidget()), QOpenGLWidget))
         layout.addWidget(self.button)
         self.setLayout(layout)
 

@@ -3,7 +3,7 @@
 #include <FAST/Visualization/VolumeRenderer/VolumeRenderer.hpp>
 #include <FAST/Visualization/Window.hpp>
 #include <FAST/Data/Image.hpp>
-#include <QGLContext>
+#include <QOpenGLContext>
 #include <FAST/Algorithms/ImageFlipper/ImageFlipper.hpp>
 #include <FAST/Algorithms/ImageChannelConverter/ImageChannelConverter.hpp>
 
@@ -24,22 +24,24 @@ RenderToImage::RenderToImage(Color bgcolor, int width, int height) {
 
     if(QThread::currentThread() == QApplication::instance()->thread()) { // Is main thread?
         // Main thread..
-        QGLContext *context = new QGLContext(View::getGLFormat(), fast::Window::getSecondaryGLContext()->device());
-        context->create(fast::Window::getSecondaryGLContext());
-        if(!context->isValid() || !context->isSharing()) {
+        auto context = new QOpenGLContext();
+        context->setShareContext(fast::Window::getSecondaryGLContext());
+        context->create();
+        if(!context->isValid() || !context->areSharing(context, fast::Window::getSecondaryGLContext())) {
             throw Exception("The custom Qt GL context in fast::View is invalid!");
         }
         m_context = context;
     } else {
         // Computation thread
-        QGLContext *context = new QGLContext(View::getGLFormat(), fast::Window::getMainGLContext()->device());
-        context->create(fast::Window::getMainGLContext());
-        if(!context->isValid() || !context->isSharing()) {
+        auto context = new QOpenGLContext();
+        context->setShareContext(fast::Window::getMainGLContext());
+        context->create();
+        if(!context->isValid() || !context->areSharing(context, fast::Window::getMainGLContext())) {
             throw Exception("The custom Qt GL context in fast::View is invalid!");
         }
         m_context = context;
     }
-    m_context->makeCurrent();
+    m_context->makeCurrent(Window::getQSurface());
     initializeOpenGLFunctions();
 }
 
@@ -82,7 +84,7 @@ std::vector<Renderer::pointer> RenderToImage::getRenderers() {
 }
 
 void RenderToImage::execute() {
-    m_context->makeCurrent();
+    m_context->makeCurrent(Window::getQSurface());
     bool doContinue = true;
     for(auto renderer : getRenderers()) {
         renderer->update(m_executeToken);

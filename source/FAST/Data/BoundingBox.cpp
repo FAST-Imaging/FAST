@@ -142,8 +142,8 @@ BoundingBoxSetAccess::pointer BoundingBoxSet::getAccess(accessType type) {
         if(!QApplication::instance()) {
             Window::initializeQtApp();
         }
-        if(QGLContext::currentContext() == nullptr)
-            Window::getMainGLContext()->makeCurrent();
+        if(QOpenGLContext::currentContext() == nullptr)
+            Window::getMainGLContext()->makeCurrent(Window::getQSurface());
 
         QOpenGLFunctions_3_3_Core *fun = new QOpenGLFunctions_3_3_Core;
         fun->initializeOpenGLFunctions();
@@ -208,9 +208,9 @@ BoundingBoxSetOpenGLAccess::pointer BoundingBoxSet::getOpenGLAccess(
         if(!QApplication::instance()) {
             Window::initializeQtApp();
         }
-        if(QGLContext::currentContext() == nullptr)
-            Window::getMainGLContext()->makeCurrent();
-        QGLFunctions *fun = Window::getMainGLContext()->functions();
+        if(QOpenGLContext::currentContext() == nullptr)
+            Window::getMainGLContext()->makeCurrent(Window::getQSurface());
+        QOpenGLFunctions *fun = Window::getMainGLContext()->functions();
         fun->glDeleteBuffers(1, &mCoordinateVBO);
         fun->glGenBuffers(1, &mCoordinateVBO);
 		fun->glDeleteBuffers(1, &mLineEBO);
@@ -255,7 +255,7 @@ BoundingBoxSetOpenGLAccess::pointer BoundingBoxSet::getOpenGLAccess(
     } else {
         if(!mVBODataIsUpToDate) {
 #ifdef FAST_MODULE_VISUALIZATION
-			QGLFunctions *fun = Window::getMainGLContext()->functions();
+			QOpenGLFunctions *fun = Window::getMainGLContext()->functions();
             // Update VBO/EBO data from host
             // Coordinates
             fun->glBindBuffer(GL_ARRAY_BUFFER, mCoordinateVBO);
@@ -301,7 +301,7 @@ void BoundingBoxSet::freeAll() {
         // Need mutual exclusive write lock to delete data
         //VertexBufferObjectAccess::pointer access = getVertexBufferObjectAccess(ACCESS_READ_WRITE);
         //Window::getMainGLContext()->makeCurrent(); // Need an active context to delete the mesh VBO
-        QGLFunctions *fun = Window::getMainGLContext()->functions();
+        QOpenGLFunctions *fun = Window::getMainGLContext()->functions();
         // glDeleteBuffer is not used due to multi-threading issues..
         //fun->glDeleteBuffers(1, &mVBOID);
 

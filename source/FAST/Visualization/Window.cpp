@@ -13,6 +13,7 @@
 #include <QAbstractAnimation>
 #include <QGraphicsOpacityEffect>
 #include <QPropertyAnimation>
+#include <QOffscreenSurface>
 #ifndef WIN32
 #ifndef __APPLE__
 #include <X11/Xlib.h>
@@ -21,8 +22,9 @@
 
 namespace fast {
 
-QGLContext* Window::mMainGLContext = nullptr; // Lives in main thread or computation thread if it exists.
-QGLContext* Window::mSecondaryGLContext = nullptr; // Lives in main thread always
+QOpenGLContext* Window::mMainGLContext = nullptr; // Lives in main thread or computation thread if it exists.
+QOpenGLContext* Window::mSecondaryGLContext = nullptr; // Lives in main thread always
+QOffscreenSurface* Window::m_offscreenSurface = nullptr;
 
 class FAST_EXPORT FASTApplication : public QApplication {
 public:
@@ -171,6 +173,15 @@ void Window::initializeQtApp() {
         // Create some dummy argc and argv options as QApplication requires it
         int* argc = new int[1];
         *argc = 0;
+
+        QCoreApplication::setAttribute(Qt::AA_ShareOpenGLContexts);
+
+        // Set default OpenGL format for all GL contexts to use:
+        QSurfaceFormat qglFormat = QSurfaceFormat::defaultFormat();
+        qglFormat.setVersion(3, 3);
+        qglFormat.setProfile(QSurfaceFormat::CoreProfile);
+        QSurfaceFormat::setDefaultFormat(qglFormat);
+
 #if defined(WIN32) || defined(__APPLE__)
         QApplication* app = new FASTApplication(*argc,NULL);
 #else
@@ -217,22 +228,20 @@ void Window::initializeQtApp() {
     }
 
      // Create computation GL context, if it doesn't exist
-    if(mMainGLContext == NULL && Config::getVisualization()) {
+    if(mMainGLContext == nullptr && Config::getVisualization()) {
         Reporter::info() << "Creating new GL context for computation thread" << Reporter::end();
 
         // Create GL context to be shared with the CL contexts
-        QGLWidget* widget = new QGLWidget;
-        mMainGLContext = new QGLContext(View::getGLFormat(), widget); // by including widget here the context becomes valid
+        m_offscreenSurface = new QOffscreenSurface;
+        m_offscreenSurface->create();
+        if(!m_offscreenSurface->isValid())
+            throw Exception("QOffscreenSurface was invalid");
+        mMainGLContext = new QOpenGLContext(); // by including widget here the context becomes valid
+        mMainGLContext->setShareContext(QOpenGLContext::globalShareContext());
         mMainGLContext->create();
-        mSecondaryGLContext = new QGLContext(View::getGLFormat(), widget); // by including widget here the context becomes valid
-        mSecondaryGLContext->create(mMainGLContext);
-        /*
-        // Do this by creating an offscreen GL context using a dummy QGLPixelBuffer
-        // TODO this is not working for some.. why?
-        auto buffer = new QGLPixelBuffer(8,8, View::getGLFormat());
-        buffer->makeCurrent();
-        mMainGLContext = buffer->context();
-         */
+        mSecondaryGLContext = new QOpenGLContext(); // by including widget here the context becomes valid
+        mSecondaryGLContext->setShareContext(mMainGLContext);
+        mSecondaryGLContext->create();
         if(!mMainGLContext->isValid()) {
             throw Exception("Qt GL context is invalid!");
         }
@@ -364,7 +373,7 @@ void Window::setTimeout(unsigned int milliseconds) {
     mTimeout = milliseconds;
 }
 
-QGLContext* Window::getMainGLContext() {
+QOpenGLContext* Window::getMainGLContext() {
     if(mMainGLContext == nullptr) {
         if(!Config::getVisualization())
             throw Exception("Rendering in FAST was disabled, unable to continue.\nIf you want to render or use a GUI with FAST on a remote server read the documentation:\nhttps://fast-imaging.github.io/fast-remote-server.html");
@@ -374,7 +383,7 @@ QGLContext* Window::getMainGLContext() {
     return mMainGLContext;
 }
 
-QGLContext* Window::getSecondaryGLContext() {
+QOpenGLContext* Window::getSecondaryGLContext() {
     if(mSecondaryGLContext == nullptr) {
         if(!Config::getVisualization())
             throw Exception("Rendering in FAST was disabled, unable to continue.\nIf you want to render or use a GUI with FAST on a remote server read the documentation:\nhttps://fast-imaging.github.io/fast-remote-server.html");
@@ -386,7 +395,7 @@ QGLContext* Window::getSecondaryGLContext() {
 
 
 
-void Window::setMainGLContext(QGLContext* context) {
+void Window::setMainGLContext(QOpenGLContext* context) {
     mMainGLContext = context;
 }
 
@@ -669,6 +678,15 @@ void Window::timerCallback(TimerCallbackClass* callback, int milliseconds) {
         callback->handle();
     });
     timer->start();
+}
+
+QSurface *Window::getQSurface() {
+    if(mMainGLContext == nullptr) {
+        if(!Config::getVisualization())
+            throw Exception("Visualization in FAST was disabled, unable to continue.\nIf you want to run FAST with visualization on a remote server, see the wiki page\nhttps://github.com/smistad/FAST/wiki/Running-FAST-on-a-remote-server");
+        initializeQtApp();
+    }
+    return (QSurface*)m_offscreenSurface;
 }
 
 } // end namespace fast
