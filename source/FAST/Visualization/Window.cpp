@@ -7,6 +7,7 @@
 #include <QFontDatabase>
 #include <QMessageBox>
 #include <QGridLayout>
+#include <QPluginLoader>
 #ifndef WIN32
 #ifndef __APPLE__
 #include <X11/Xlib.h>
@@ -169,14 +170,25 @@ void Window::initializeQtApp() {
         QApplication* app = new FASTApplication(*argc,NULL);
 #else
         if(XOpenDisplay(nullptr) == nullptr) {
-            Reporter::warning() << "Unable to open X display. Disabling visualization." << Reporter::end();
+            Reporter::warning() << "Unable to open X display. Rendering is disabled." << Reporter::end();
             // Give the -platform offscreen option to Qt. This will stop Qt for trying to initiating X and open a display
             *argc = 3;
             char const* argv[3] = {"fast", "-platform", "offscreen"};
             QApplication *app = new FASTApplication(*argc, (char**)&argv);
             Config::setVisualization(false);
         } else {
-            QApplication *app = new FASTApplication(*argc, NULL);
+            QPluginLoader loader((Config::getQtPluginsPath() + "/platforms/libqxcb.so").c_str());
+            if(!loader.load()) {
+                Reporter::warning() << "Found X display, but failed to load Qt xcb plugin." << Reporter::end();
+                Reporter::warning() << "GUI is disabled, but offscreen rendering using RenderToImage is enabled." << Reporter::end();
+                Reporter::warning() << "Error message: " << loader.errorString().toStdString() << " Set environment variable QT_DEBUG_PLUGINS=1 for more info." << Reporter::end();
+                // Give the -platform offscreen option to Qt. This will stop Qt for trying to initiating X and open a display
+                *argc = 3;
+                char const* argv[3] = {"fast", "-platform", "offscreen"};
+                QApplication *app = new FASTApplication(*argc, (char**)&argv);
+            } else {
+                QApplication *app = new FASTApplication(*argc, NULL);
+            }
         }
 #endif
 
@@ -272,7 +284,11 @@ void Window::addView(View* view) {
 }
 
 void Window::start() {
-
+    if(QApplication::platformName() == "offscreen") {
+        reportError() << "You are trying to display a window, but GUI is disabled. See previous error message. Auto closing window in 2 seconds." << reportEnd();
+        reportError() << "If you want to use FAST with a GUI on a remote server please read the documentation: https://fast-imaging.github.io/fast-remote-server.html" << reportEnd();
+        mTimeout = 2000;
+    }
 	int screenHeight = getScreenHeight();
 	int screenWidth = getScreenWidth();
 
@@ -346,7 +362,7 @@ void Window::setTimeout(unsigned int milliseconds) {
 QGLContext* Window::getMainGLContext() {
     if(mMainGLContext == nullptr) {
         if(!Config::getVisualization())
-            throw Exception("Visualization in FAST was disabled, unable to continue.\nIf you want to run FAST with visualization on a remote server, see the wiki page\nhttps://github.com/smistad/FAST/wiki/Running-FAST-on-a-remote-server");
+            throw Exception("Rendering in FAST was disabled, unable to continue.\nIf you want to render or use a GUI with FAST on a remote server read the documentation:\nhttps://fast-imaging.github.io/fast-remote-server.html");
         initializeQtApp();
     }
 
@@ -356,7 +372,7 @@ QGLContext* Window::getMainGLContext() {
 QGLContext* Window::getSecondaryGLContext() {
     if(mSecondaryGLContext == nullptr) {
         if(!Config::getVisualization())
-            throw Exception("Visualization in FAST was disabled, unable to continue.\nIf you want to run FAST with visualization on a remote server, see the wiki page\nhttps://github.com/smistad/FAST/wiki/Running-FAST-on-a-remote-server");
+            throw Exception("Rendering in FAST was disabled, unable to continue.\nIf you want to render or use a GUI with FAST on a remote server read the documentation:\nhttps://fast-imaging.github.io/fast-remote-server.html");
         initializeQtApp();
     }
 
