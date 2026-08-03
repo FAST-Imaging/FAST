@@ -222,7 +222,7 @@ VertexBufferObjectAccess::pointer Mesh::getVertexBufferObjectAccess(
         if(!mVBODataIsUpToDate) {
             // Update data
 #ifdef FAST_MODULE_VISUALIZATION
-            QGLFunctions *fun = Window::getMainGLContext()->functions();
+            QOpenGLFunctions *fun = Window::getMainGLContext()->functions();
             // Coordinates
             fun->glBindBuffer(GL_ARRAY_BUFFER, mCoordinateVBO);
             fun->glBufferData(GL_ARRAY_BUFFER, mCoordinates.size()*sizeof(float), mCoordinates.data(), GL_STATIC_DRAW);
