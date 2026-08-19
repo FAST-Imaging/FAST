@@ -82,6 +82,7 @@ def display2D(
     intensityWindow = _set_default_shorcut_value(intensityWindow, -1)
     segmentationColors = _set_default_shorcut_value(segmentationColors, LabelColors())
     segmentationBorderOpacity = _set_default_shorcut_value(segmentationBorderOpacity, -1)
+    vertexLabelColors = _set_default_shorcut_value(vertexLabelColors, LabelColors())
 
     renderers = []
 
