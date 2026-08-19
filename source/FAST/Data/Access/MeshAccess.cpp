@@ -37,7 +37,7 @@ void MeshAccess::setVertex(uint i, MeshVertex vertex, bool updateBoundingBox) {
     Vector3f normal = vertex.getNormal();
     if(normal != Vector3f::Zero() || !mNormals->empty()) {
         if(mNormals->empty())
-            mNormals->resize(i*3, 0.0f);
+            mNormals->resize((i+1)*3, 0.0f);
         (*mNormals)[i*3] = normal[0];
         (*mNormals)[i*3+1] = normal[1];
         (*mNormals)[i*3+2] = normal[2];
@@ -45,7 +45,7 @@ void MeshAccess::setVertex(uint i, MeshVertex vertex, bool updateBoundingBox) {
     Color color = vertex.getColor();
     if(!color.isNull() || !mColors->empty()) {
         if(mColors->empty())
-            mColors->resize(i*3, -1.0f);
+            mColors->resize((i+1)*3, -1.0f);
         (*mColors)[i*3] = color.getRedValue();
         (*mColors)[i*3+1] = color.getGreenValue();
         (*mColors)[i*3+2] = color.getBlueValue();
@@ -53,7 +53,7 @@ void MeshAccess::setVertex(uint i, MeshVertex vertex, bool updateBoundingBox) {
     auto label = vertex.getLabel();
     if(label > 0 || !m_labels->empty()) {
         if(m_labels->empty())
-            m_labels->resize(i, 0);
+            m_labels->resize(i+1, 0);
         (*m_labels)[i] = label;
     }
     if(updateBoundingBox) {
@@ -166,15 +166,15 @@ void MeshAccess::addVertices(const std::vector<MeshVertex>& vertices) {
     bool resizedNormals = false;
     for(int i = 0; i < vertices.size(); ++i) {
         if(!resizedNormals && (!mNormals->empty() || vertices[i].getNormal() != Vector3f::Zero())) {
-            mNormals->resize(mNormals->size() + vertices.size()*3, 0);
+            mNormals->resize(startIndex*3 + vertices.size()*3, 0);
             resizedNormals = true;
         }
         if(!resizedColors && (!mColors->empty() || !vertices[i].getColor().isNull())) {
-            mColors->resize(mColors->size() + vertices.size()*3, -1);
+            mColors->resize(startIndex*3 + vertices.size()*3, -1);
             resizedColors = true;
         }
         if(!resizedLabels && (!m_labels->empty() || vertices[i].getLabel() != 0)) {
-            m_labels->resize(m_labels->size() + vertices.size(), 0);
+            m_labels->resize(startIndex + vertices.size(), 0);
             resizedLabels = true;
         }
         setVertex(startIndex + i, vertices[i], false);
