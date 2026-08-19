@@ -123,9 +123,10 @@ void ProcessObject::update(int executeToken) {
             this->waitToFinish();
         this->mRuntimeManager->stopRegularTimer("execute");
     }
-    // TODO need to clear m_frameData m_lastFrame
-    //m_frameData.clear();
-    //m_lastFrame.clear();
+
+    // Need to clear m_frameData m_lastFrame
+    m_frameData.clear();
+    m_lastFrame.clear();
 }
 
 DataChannel::pointer ProcessObject::getOutputPort(uint portID) {
