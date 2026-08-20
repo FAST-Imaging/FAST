@@ -198,12 +198,12 @@ VertexBufferObjectAccess::pointer Mesh::getVertexBufferObjectAccess(
                 fun->glDeleteBuffers(1, &mLineEBO);
                 fun->glGenBuffers(1, &mLineEBO);
                 fun->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mLineEBO);
-                fun->glBufferData(GL_ELEMENT_ARRAY_BUFFER, mNrOfLines*sizeof(uint), NULL, GL_STATIC_DRAW);
+                fun->glBufferData(GL_ELEMENT_ARRAY_BUFFER, mNrOfLines * 2 * sizeof(uint), NULL, GL_STATIC_DRAW);
                 // Triangle EBO
                 fun->glDeleteBuffers(1, &mTriangleEBO);
                 fun->glGenBuffers(1, &mTriangleEBO);
                 fun->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mTriangleEBO);
-                fun->glBufferData(GL_ELEMENT_ARRAY_BUFFER, mNrOfTriangles*sizeof(uint), NULL, GL_STATIC_DRAW);
+                fun->glBufferData(GL_ELEMENT_ARRAY_BUFFER, mNrOfTriangles * 3 * sizeof(uint), NULL, GL_STATIC_DRAW);
             }
         }
         fun->glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -360,11 +360,11 @@ MeshAccess::pointer Mesh::getMeshAccess(accessType type) {
         if(mUseEBO) {
               // Line EBO
             fun->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mLineEBO);
-            fun->glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, mNrOfLines*sizeof(uint), mLines.data());
+            fun->glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, mNrOfLines * 2 * sizeof(uint), mLines.data());
 
             // Triangle EBO
             fun->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, mTriangleEBO);
-            fun->glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, mNrOfTriangles*sizeof(uint), mTriangles.data());
+            fun->glGetBufferSubData(GL_ELEMENT_ARRAY_BUFFER, 0, mNrOfTriangles * 3 * sizeof(uint), mTriangles.data());
 
             fun->glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
         } else {
@@ -372,7 +372,7 @@ MeshAccess::pointer Mesh::getMeshAccess(accessType type) {
             uint counter = 0;
             for(int i = 0; i < mNrOfLines; ++i) {
                 mLines[i*2] = counter;
-                mLines[i*2] = counter+1;
+                mLines[i*2+1] = counter+1;
                 counter += 2;
             }
             counter = 0;
@@ -647,6 +647,7 @@ void Mesh::accessFinished() {
         mNrOfVertices = mCoordinates.size() / 3;
         mNrOfLines = mLines.size() / 2;
         mNrOfTriangles = mTriangles.size() / 3;
+        mUseEBO = true;
     }
     DataObject::accessFinished();
 }
