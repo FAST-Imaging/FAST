@@ -9,9 +9,9 @@
 namespace fast {
 
 /**
- * \brief A 2D bounding box data object.
+ * @brief A 2D bounding box data object.
  *
- * \ingroup data bounding-box
+ * @ingroup data bounding-box
  */
 class FAST_EXPORT BoundingBox : public SpatialDataObject {
     FAST_DATA_OBJECT(BoundingBox)
@@ -25,14 +25,17 @@ class FAST_EXPORT BoundingBox : public SpatialDataObject {
         void setLabel(uchar label);
         uchar getLabel();
         /**
-         * Set position in millimeters
+         * @brief Set position in millimeters
          */
         void setPosition(Vector2f position);
         Vector2f getPosition();
+
+        Vector2f getCentroid();
+
         /**
-         * Set size in millimeters
+         * @brief Set size in millimeters
          */
-        void setSize(Vector2f size);
+        void setSize(Vector2f size) ;
         Vector2f getSize();
 
         void setScore(float score);
@@ -54,9 +57,9 @@ class FAST_EXPORT BoundingBox : public SpatialDataObject {
 };
 
 /**
- * \brief A data object representing a (large) set of bounding boxes.
+ * @brief A data object representing a (large) set of bounding boxes.
  *
- * \ingroup data bounding-box
+ * @ingroup data bounding-box
  */
 class FAST_EXPORT BoundingBoxSet : public SpatialDataObject {
     FAST_DATA_OBJECT(BoundingBoxSet)

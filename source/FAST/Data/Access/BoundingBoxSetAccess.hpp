@@ -37,7 +37,10 @@ class FAST_EXPORT BoundingBoxSetAccess {
 		std::vector<uint> getLines() const;
 		std::vector<uchar> getLabels() const;
 		std::vector<float> getScores() const;
-		void addBoundingBoxes(std::vector<float> coordinates, std::vector<uint> lines, std::vector<uchar> labels, std::vector<float> scores, float minimumSize);
+		std::shared_ptr<BoundingBox> getBoundingBox(uint i) const;
+		void setBoundingBox(uint i, std::shared_ptr<BoundingBox> box);
+        void addBoundingBoxes(const std::vector<std::shared_ptr<BoundingBox>>& boxes);
+		void addBoundingBoxes(const std::vector<float>& coordinates, std::vector<uint> lines, const std::vector<uchar>& labels, const std::vector<float>& scores, float minimumSize);
         void release();
         ~BoundingBoxSetAccess();
 		typedef std::unique_ptr<BoundingBoxSetAccess> pointer;

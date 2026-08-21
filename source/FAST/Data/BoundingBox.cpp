@@ -84,6 +84,11 @@ float BoundingBox::intersectionOverUnion(BoundingBox::pointer bb2) const {
     return iou;
 }
 
+Vector2f BoundingBox::getCentroid() {
+    Vector2f centroid = (getPosition() + (getPosition() + getSize()))*0.5f;
+    return centroid;
+}
+
 BoundingBoxSet::BoundingBoxSet() {
     mVBOHasData = false;
     mVBODataIsUpToDate = false;
