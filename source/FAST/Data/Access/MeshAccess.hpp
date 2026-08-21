@@ -39,6 +39,8 @@ class FAST_EXPORT  MeshAccess {
         void setVertex(uint i, MeshVertex vertex, bool updateBoundingBox = true);
         void addVertex(MeshVertex v);
         void addVertices(const std::vector<MeshVertex>& vertices);
+        void addLines(const std::vector<MeshLine>& lines);
+        void addTriangles(const std::vector<MeshTriangle>& triangles);
         MeshTriangle getTriangle(uint i);
 		void setTriangle(uint i, MeshTriangle);
 		void addTriangle(MeshTriangle t);

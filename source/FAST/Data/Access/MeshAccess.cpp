@@ -185,6 +185,20 @@ void MeshAccess::addVertices(const std::vector<MeshVertex>& vertices) {
     mMesh->setBoundingBox(box);
 }
 
+void MeshAccess::addLines(const std::vector<MeshLine> &lines) {
+    mLines->resize(mLines->size() + lines.size()*2);
+    for(int i = 0; i < lines.size(); ++i) {
+        setLine(i, lines[i]);
+    }
+}
+
+void MeshAccess::addTriangles(const std::vector<MeshTriangle> &triangles) {
+    mTriangles->resize(mTriangles->size() + triangles.size());
+    for(int i = 0; i < triangles.size(); ++i) {
+        setTriangle(i, triangles[i]);
+    }
+}
+
 } // end namespace fast
 
 
