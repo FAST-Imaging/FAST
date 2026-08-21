@@ -1,8 +1,7 @@
 #pragma once
 
-#include "FAST/Visualization/Renderer.hpp"
-#include "FAST/Data/Color.hpp"
-#include "FAST/Data/Mesh.hpp"
+#include <FAST/Visualization/LabelColorRenderer.hpp>
+#include <FAST/Data/Color.hpp>
 
 namespace fast {
 
@@ -11,23 +10,28 @@ namespace fast {
  *
  * @ingroup renderers
  */
-class FAST_EXPORT  LineRenderer : public Renderer {
+class FAST_EXPORT  LineRenderer : public LabelColorRenderer {
     FAST_PROCESS_OBJECT(LineRenderer)
     public:
         /**
          * @brief Create instance
-         * @param color Color of lines to draw
          * @param lineWidth Width of line
+         * @param color Global color to use for lines
+         * @param labelColors Label colors
+         * @param opacity Opacity of lines: 1 = no transparency, 0 = fully transparent
          * @param drawOnTop Whether to draw on top of everything else or not. This disables the depth check in OpenGL
          * @return instance
          */
         FAST_CONSTRUCTOR(LineRenderer,
-                         Color, color, = Color::Green(),
                          float, lineWidth, = 1.0f,
+                         Color, color, = Color::Null(),
+                         LabelColors, labelColors, = LabelColors(),
+                         float, opacity, = 1.0f,
                          bool, drawOnTop, = false
         );
         uint addInputConnection(DataChannel::pointer port) override;
         uint addInputConnection(DataChannel::pointer port, Color color, float width);
+        void setOpacity(float opacity);
         void setDefaultColor(Color color);
         /**
          * @brief Set line width in percent (2D mode only atm.)
@@ -43,6 +47,7 @@ class FAST_EXPORT  LineRenderer : public Renderer {
         draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatrix, float zNear, float zFar, bool mode2D, int viewWidth,
              int viewHeight);
     protected:
+        float m_opacity = 1.0f;
         bool m_drawJoints = true;
         float mDefaultLineWidth;
         Color mDefaultColor;

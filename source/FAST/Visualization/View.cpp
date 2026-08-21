@@ -14,6 +14,7 @@
 #include <FAST/Visualization/TextRenderer/TextRenderer.hpp>
 #include <FAST/Data/Text.hpp>
 #include <FAST/Visualization/LineRenderer/LineRenderer.hpp>
+#include <FAST/Data/Mesh.hpp>
 
 namespace fast {
 

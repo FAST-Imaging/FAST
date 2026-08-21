@@ -59,7 +59,8 @@ TEST_CASE("Airway segmentation", "[fast][AirwaySegmentation][visual]") {
 
 	auto renderer = TriangleRenderer::create()->connect(extraction);
 
-	auto lineRenderer = LineRenderer::create(Color::Blue(), true)->connect(centerline);
+	auto lineRenderer = LineRenderer::create(1.0f, Color::Blue())->connect(centerline);
+	lineRenderer->setDefaultDrawOnTop(true);
 
 	auto window = SimpleWindow3D::create()->connect({renderer, lineRenderer});
 	window->setTimeout(1000);

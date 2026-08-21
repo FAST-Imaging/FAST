@@ -11,6 +11,7 @@ class QWidget;
 namespace fast {
 
 class ImagePyramid;
+class Mesh;
 
 #ifndef SWIG
 
@@ -36,7 +37,9 @@ struct Display2DArgs {
     float segmentationBorderOpacity = -1.0f;
     int segmentationBorderRadius = 1;
     float lineWidth = 1.0f;
-    Color lineColor = Color::Green();
+    Color lineColor = Color::Null();
+    LabelColors lineLabelColors;
+    float lineOpacity = 1.0f;
     float vertexSize = 10.0;
     bool vertexSizeIsInPixels = true;
     int vertexMinSize = 1;

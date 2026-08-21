@@ -20,7 +20,9 @@ def display2D(
             segmentationBorderOpacity:float=None,
             segmentationBorderRadius:int=1,
             lineWidth:float=1,
-            lineColor:Color=Color.Green(),
+            lineColor:Color=Color.Null(),
+            lineLabelColors:Dict[int, Color]=None,
+            lineOpacity:float=1,
             vertexSize:float=10.0,
             vertexSizeIsInPixels:bool=True,
             vertexMinSize:int=1,
@@ -54,6 +56,8 @@ def display2D(
     :param segmentationBorderRadius: Size of segmentation border
     :param lineWidth: Width of line
     :param lineColor: Color of line
+    :param lineLabelColors Set line color per label
+    :param lineOpacity Set line opacity
     :param vertexSize Vertex point size (can be in pixels or millimeters, see sizeIsInPixels parameter)
     :param vertexSizeIsInPixels Whether size is given in pixels or millimeters
     :param vertexMinSize Minimum size in pixels, used when sizeInPixels = false
@@ -83,6 +87,7 @@ def display2D(
     segmentationColors = _set_default_shorcut_value(segmentationColors, LabelColors())
     segmentationBorderOpacity = _set_default_shorcut_value(segmentationBorderOpacity, -1)
     vertexLabelColors = _set_default_shorcut_value(vertexLabelColors, LabelColors())
+    lineLabelColors = _set_default_shorcut_value(lineLabelColors, LabelColors())
 
     renderers = []
 
@@ -109,8 +114,10 @@ def display2D(
 
     if lines is not None:
         renderer = LineRenderer.create(
+            color=lineColor,
             lineWidth=lineWidth,
-            color=lineColor
+            labelColors=lineLabelColors,
+            opacity=lineOpacity
         ).connect(lines)
         renderers.append(renderer)
 

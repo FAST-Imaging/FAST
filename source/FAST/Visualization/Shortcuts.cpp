@@ -88,7 +88,7 @@ std::variant<std::monostate, Window::pointer, Image::pointer> display2D(Display2
     }
 
     if(hasValue(args.lines)) {
-        auto renderer = LineRenderer::create(args.lineColor, args.lineWidth);
+        auto renderer = LineRenderer::create(args.lineWidth, args.lineColor, args.lineLabelColors, args.lineOpacity);
         if(std::holds_alternative<Mesh::pointer>(args.lines)) {
             renderer->connect(std::get<Mesh::pointer>(args.lines));
         } else {

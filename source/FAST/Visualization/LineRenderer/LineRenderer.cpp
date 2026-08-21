@@ -18,6 +18,7 @@ void LineRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatrix, floa
     activateShader(shaderName);
     setShaderUniform("perspectiveTransform", perspectiveMatrix, shaderName);
     setShaderUniform("viewTransform", viewingMatrix, shaderName);
+    setShaderUniform("opacity", m_opacity, shaderName);
     // For all input data
     auto dataToRender = getDataToRender();
     if(dataToRender.empty())
@@ -48,6 +49,7 @@ void LineRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatrix, floa
             //setShaderUniform("viewportHeight", viewHeight, shaderName);
         }
         bool useGlobalColor = false;
+        bool useLabelColor = false;
         Color color = Color::Green();
         if(mInputColors.count(it.first) > 0) {
             color = mInputColors[it.first];
@@ -66,7 +68,7 @@ void LineRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatrix, floa
             glDisable(GL_DEPTH_TEST);
 
         
-        VertexBufferObjectAccess::pointer access = points->getVertexBufferObjectAccess(ACCESS_READ);
+        auto access = points->getVertexBufferObjectAccess(ACCESS_READ);
         
         // Coordinates
         GLuint* coordinatesVBO = access->getCoordinateVBO();
@@ -80,11 +82,28 @@ void LineRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatrix, floa
             glBindBuffer(GL_ARRAY_BUFFER, *colorVBO);
             glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
             glEnableVertexAttribArray(1);
+        } else if(access->hasLabelVBO() && !useGlobalColor) {
+            GLuint *labelVBO = access->getLabelVBO();
+            glBindBuffer(GL_ARRAY_BUFFER, *labelVBO);
+            glVertexAttribIPointer(2, 1, GL_UNSIGNED_BYTE, sizeof(uchar), (void*)0);
+            glEnableVertexAttribArray(2);
+            useLabelColor = true;
+
+            createColorUniformBufferObject();
+            auto colorsIndex = glGetUniformBlockIndex(getShaderProgram(shaderName), "Colors");
+            glUniformBlockBinding(getShaderProgram(shaderName), colorsIndex, 0);
+            glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_colorsUBO);
         } else {
             useGlobalColor = true;
         }
         setShaderUniform("useGlobalColor", useGlobalColor, shaderName);
+        setShaderUniform("useLabelColor", useLabelColor, shaderName);
         setShaderUniform("globalColor", color.asVector(), shaderName);
+
+        if(m_opacity < 1.0f) {
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        }
 
         if(access->hasEBO()) {
             GLuint* EBO = access->getLineEBO();
@@ -98,6 +117,9 @@ void LineRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatrix, floa
 
         if(drawOnTop)
             glEnable(GL_DEPTH_TEST);
+        if(m_opacity < 1.0f) {
+            glDisable(GL_BLEND);
+        }
     }
     deactivateShader();
     if(mode2D && m_drawJoints) {
@@ -109,6 +131,7 @@ void LineRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatrix, floa
         setShaderUniform("perspectiveTransform", perspectiveMatrix, shaderName);
         setShaderUniform("viewTransform", viewingMatrix, shaderName);
         setShaderUniform("viewportWidth", viewWidth, shaderName);
+        setShaderUniform("opacity", m_opacity, shaderName);
         auto dataToRender = getDataToRender();
         for(auto it : dataToRender) {
             // Delete old VAO
@@ -124,15 +147,13 @@ void LineRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatrix, floa
             float pointSize = mDefaultLineWidth;
             auto access = points->getVertexBufferObjectAccess(ACCESS_READ);
             bool useGlobalColor = false;
+            bool useLabelColor = false;
             Color color = Color::Green();
             if(mInputColors.count(it.first) > 0) {
                 color = mInputColors[it.first];
                 useGlobalColor = true;
             } else if(!mDefaultColor.isNull()) {
                 color = mDefaultColor;
-                useGlobalColor = true;
-            } else if(!access->hasColorVBO()) {
-                color = Color::Green();
                 useGlobalColor = true;
             }
             Affine3f transform = Affine3f::Identity();
@@ -156,28 +177,49 @@ void LineRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatrix, floa
                 glBindBuffer(GL_ARRAY_BUFFER, *colorVBO);
                 glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
                 glEnableVertexAttribArray(1);
+            } else if(access->hasLabelVBO() && !useGlobalColor) {
+                GLuint *labelVBO = access->getLabelVBO();
+                glBindBuffer(GL_ARRAY_BUFFER, *labelVBO);
+                glVertexAttribIPointer(2, 1, GL_UNSIGNED_BYTE, sizeof(uchar), (void*)0);
+                glEnableVertexAttribArray(2);
+                useLabelColor = true;
+
+                createColorUniformBufferObject();
+                auto colorsIndex = glGetUniformBlockIndex(getShaderProgram(shaderName), "Colors");
+                glUniformBlockBinding(getShaderProgram(shaderName), colorsIndex, 0);
+                glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_colorsUBO);
             } else {
                 useGlobalColor = true;
             }
             setShaderUniform("useGlobalColor", useGlobalColor, shaderName);
+            setShaderUniform("useLabelColor", useLabelColor, shaderName);
             setShaderUniform("globalColor", color.asVector(), shaderName);
 
+            if(m_opacity < 1.0f) {
+                glEnable(GL_BLEND);
+                glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            }
             glDrawArrays(GL_POINTS, 0, points->getNrOfVertices());
 
             glBindBuffer(GL_ARRAY_BUFFER, 0);
             glBindVertexArray(0);
+
+            if(m_opacity < 1.0f) {
+                glDisable(GL_BLEND);
+            }
         }
         deactivateShader();
     }
     glFinish(); // Fixes random crashes in OpenGL on NVIDIA windows due to some interaction with the text renderer. Suboptimal solution as glFinish is a blocking sync operation.
 }
 
-LineRenderer::LineRenderer(Color color, float lineWidth, bool drawOnTop) {
+LineRenderer::LineRenderer(float lineWidth, Color color, LabelColors labelColors, float opacity, bool drawOnTop) {
     createInputPort<Mesh>(0, false);
-    mDefaultLineWidth = lineWidth;
-    mDefaultColor = color;
-    mDefaultDrawOnTop = drawOnTop;
-    mDefaultColorSet = true;
+    setDefaultLineWidth(lineWidth);
+    setDefaultColor(color);
+    setDefaultDrawOnTop(drawOnTop);
+    setOpacity(opacity);
+    setColors(labelColors);
     createShaderProgram({
         Config::getKernelSourcePath() + "Visualization/LineRenderer/LineRenderer.vert",
         Config::getKernelSourcePath() + "Visualization/LineRenderer/LineRenderer.frag",
@@ -208,7 +250,7 @@ uint LineRenderer::addInputConnection(DataChannel::pointer port, Color color,
 
 void LineRenderer::setDefaultColor(Color color) {
     mDefaultColor = color;
-    mDefaultColorSet = true;
+    mDefaultColorSet = !color.isNull();
 }
 
 void LineRenderer::setDefaultLineWidth(float width) {
@@ -233,6 +275,13 @@ void LineRenderer::setWidth(uint nr, float width) {
 
 void LineRenderer::setDrawJoints(bool draw) {
     m_drawJoints = draw;
+}
+
+void LineRenderer::setOpacity(float opacity) {
+    if(opacity < 0.0f || opacity > 1.0f) {
+        throw Exception("Opacity given to LineRenderer must be within [0, 1]");
+    }
+    m_opacity = opacity;
 }
 
 } // end namespace fast

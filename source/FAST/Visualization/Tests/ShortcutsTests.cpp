@@ -4,6 +4,7 @@
 #include <FAST/Importers/WholeSlideImageImporter.hpp>
 #include <FAST/Algorithms/Thresholding/BinaryThresholding.hpp>
 #include <FAST/Visualization/Widgets/TextWidget/TextWidget.hpp>
+#include <FAST/Data/Mesh.hpp>
 
 using namespace fast;
 
