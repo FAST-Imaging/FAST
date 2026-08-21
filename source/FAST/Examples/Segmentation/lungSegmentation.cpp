@@ -85,7 +85,7 @@ int main(int argc, char** argv) {
         auto window = SimpleWindow3D::create()->connect(renderer);
 
         if(parser.getOption("blood-vessel-centerline")) {
-            auto lineRenderer = LineRenderer::create(Color::Green(), 1.0, true)
+            auto lineRenderer = LineRenderer::create(1.0f, Color::Green(), {}, 1.0f, true)
                     ->connect(centerline);
             window->addRenderer(lineRenderer);
         }

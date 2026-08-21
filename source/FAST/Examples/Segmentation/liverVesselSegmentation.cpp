@@ -35,7 +35,7 @@ int main(int argc, char** argv) {
 
     auto renderer = SliceRenderer::create(PLANE_Z)->connect(importer);
 
-    auto lineRenderer = LineRenderer::create(Color::Blue(), true)
+    auto lineRenderer = LineRenderer::create(1.0f, Color::Blue(), {}, 1.0, true)
         ->connect(tubeExtraction, 1);
 
     auto surfaceExtraction = SurfaceExtraction::create()

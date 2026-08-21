@@ -52,7 +52,7 @@ int main(int argc, char** argv) {
 
         auto window = SimpleWindow2D::create(Color::Black())->connect(renderer);
         if (parser.getOption("display-lines")) {
-            window->connect(VectorFieldRenderer::create(Color::Red())->connect(source));
+            window->connect(VectorFieldRenderer::create(1.0f, Color::Red())->connect(source));
         } else {
             auto vectorRenderer = VectorFieldColorRenderer::create();
             vectorRenderer->setIntensityWindow(1.0f);

@@ -55,7 +55,8 @@ int main(int argc, char** argv) {
 	// Set up renderers and window
 	auto renderer = TriangleRenderer::create()->connect(extraction);
 
-	auto lineRenderer = LineRenderer::create(Color::Blue(), 1.0f, true)->connect(centerline);
+	auto lineRenderer = LineRenderer::create(1.0f, Color::Blue())->connect(centerline);
+	lineRenderer->setDefaultDrawOnTop(true);
 
 	auto window = SimpleWindow3D::create()->connect({renderer, lineRenderer});
 #ifdef FAST_CONTINUOUS_INTEGRATION
