@@ -5,7 +5,7 @@ import pytest
 def test_data_stream_empty_generator():
     importer = fast.WholeSlideImageImporter.create(fast.Config.getTestDataPath() + '/WSI/CMU-1.svs')
 
-    segmentation = fast.TissueSegmentation.create(False).connect(importer).runAndGetOutputData()
+    segmentation = fast.TissueSegmentation.create(True).connect(importer).runAndGetOutputData()
     segmentation.fill(0) # Empty segmentation, means no patches
     generator = fast.PatchGenerator.create(256, 256, level=2).connect(importer).connect(1, segmentation)
 
