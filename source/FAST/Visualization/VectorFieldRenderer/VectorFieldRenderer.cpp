@@ -4,11 +4,14 @@
 
 namespace fast {
 
+VectorFieldRenderer::VectorFieldRenderer(float lineWidth, Color color, LabelColors labelColors, float opacity,
+                                         bool drawOnTop) : LineRenderer(lineWidth, color, labelColors, opacity, drawOnTop) {
+
+}
+
 void VectorFieldRenderer::execute() {
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        if(m_disabled)
-            return;
         if(mStop) {
             return;
         }
