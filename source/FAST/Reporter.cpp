@@ -18,9 +18,6 @@ std::map<Reporter::Type, Reporter::Method> Reporter::mGlobalReporterMethods =
         {ERROR, COUT}
 };
 #endif
-#ifdef WIN32
-WORD Reporter::m_defaultAttributes = 0;
-#endif
 
 Reporter::Reporter(Type type) {
     mType = type;

@@ -1457,7 +1457,7 @@ PrintState initializePrint() {
         if(!state.ansiSupported) {
             // Fallback
             CONSOLE_SCREEN_BUFFER_INFO Info;
-            GetConsoleScreenBufferInfo(m_stdout, &Info);
+            GetConsoleScreenBufferInfo(state.stdout, &Info);
             state.defaultAttributes = Info.wAttributes & 0x00F0;
         }
 #else
@@ -1504,7 +1504,7 @@ void print(const std::string& text, ConsoleColor color, bool bold, bool addNewli
             std::cout << code;
         } else {
 #ifdef WIN32
-            auto currentAttributes = state.defaultAttributes | fallbackColorCodes[name];
+            auto currentAttributes = state.defaultAttributes | fallbackColorCodes[color];
             if(bold)
                 currentAttributes |= FOREGROUND_INTENSITY;
             SetConsoleTextAttribute(state.stdout, currentAttributes);
