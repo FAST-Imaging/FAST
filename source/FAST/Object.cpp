@@ -1,4 +1,5 @@
 #include "FAST/Object.hpp"
+#include "Utility.hpp"
 #include <iostream>
 #include <mutex>
 #include <FAST/Config.hpp>
@@ -73,25 +74,13 @@ Object::Object() {
         // Print the splash
         auto disableSplashFlag = std::getenv("FAST_DISABLE_SPLASH");
         if(disableSplashFlag == nullptr) {
-#ifdef WIN32
-        CONSOLE_SCREEN_BUFFER_INFO Info;
-        HANDLE hStdout = GetStdHandle(STD_OUTPUT_HANDLE);
-        GetConsoleScreenBufferInfo(hStdout, &Info);
-        auto defaultAttributes = Info.wAttributes;
-        SetConsoleTextAttribute(hStdout, (defaultAttributes & 0x00F0) | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-#else
-        std::cout << "\033[32;1m"; // Green bold
-#endif
-        std::cout << "\n     - Powered by -     \n"
-            "   _______   __________   \n"
-            "  / __/ _ | / __/_  __/   https://fast-imaging.github.io\n"
-            " / _// __ |_\\ \\  / /               " + getVersion() + "\n"
-            "/_/ /_/ |_/___/ /_/       \n\n";
-#if WIN32
-        SetConsoleTextAttribute(hStdout, defaultAttributes);
-#else
-        std::cout << "\033[0m" << std::flush; // Reset
-#endif
+            print("\n     - Powered by -     \n"
+                "   _______   __________   \n"
+                "  / __/ _ | / __/_  __/   https://fast-imaging.github.io\n"
+                " / _// __ |_\\ \\  / /               " + getVersion() + "\n"
+                "/_/ /_/ |_/___/ /_/       \n\n",
+            ConsoleColor::GREEN, true, false);
+            std::cout << std::flush;
         }
     });
     mRuntimeManager = RuntimeMeasurementsManager::New();

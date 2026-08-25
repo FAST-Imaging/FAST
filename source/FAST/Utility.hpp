@@ -365,5 +365,9 @@ class FAST_EXPORT Progress {
 
 void downloadAndExtractZipFile(const std::string& URL, const std::string& destination, const std::string& name);
 
+enum class ConsoleColor {DEFAULT = 0, RED, GREEN, BLUE, YELLOW, MAGENTA, CYAN};
+
+void print(const std::string& text, ConsoleColor color = ConsoleColor::DEFAULT, bool bold = false, bool addNewline = true);
+
 } // end namespace fast
 

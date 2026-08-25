@@ -1287,11 +1287,13 @@ void Progress::update(uint64_t current) {
         const int progressbarWidth = totalWidth - ss.str().size() - startString.size() - 1; // have to leave last line open to avoid jumping to next line (windows)
         std::cout << startString;
         int pos = progressbarWidth * percent;
+        std::string bar;
         for (int i = 0; i < progressbarWidth; ++i) {
-            if (i < pos) std::cout << "=";
-            else if (i == pos) std::cout << ">";
-            else std::cout << " ";
+            if (i < pos) bar += "=";
+            else if (i == pos) bar += ">";
+            else bar += " ";
         }
+        print(bar, ConsoleColor::GREEN, false, false);
         std::cout << ss.str();
         std::cout.flush();
         if(percent == 1.0f) {
@@ -1420,5 +1422,112 @@ static void downloadAndExtractZipFile(const std::string& URL, const std::string&
 }
 #endif
 
+std::mutex& getGlobalPrintMutex() {
+    static std::mutex mutex;
+    return mutex;
+}
+
+struct PrintState {
+    bool ansiSupported;
+#ifdef WIN32
+    HANDLE stdout;
+    WORD defaultAttributes;
+#endif
+};
+
+PrintState initializePrint() {
+    static bool initialized = false;
+    static PrintState state;
+    state.ansiSupported = false;
+    if(!initialized) {
+#ifdef WIN32
+        state.stdout = GetStdHandle(STD_OUTPUT_HANDLE);
+        DWORD mode = 0;
+        if(!GetConsoleMode(state.stdout, &mode)) {
+            state.ansiSupported = false;
+        } else {
+            mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
+            if(!SetConsoleMode(state.stdout, mode)) {
+                state.ansiSupported = false;
+            } else {
+                state.ansiSupported = true;
+            }
+        }
+
+        if(!state.ansiSupported) {
+            // Fallback
+            CONSOLE_SCREEN_BUFFER_INFO Info;
+            GetConsoleScreenBufferInfo(m_stdout, &Info);
+            state.defaultAttributes = Info.wAttributes & 0x00F0;
+        }
+#else
+        state.ansiSupported = true;
+#endif
+    }
+    return state;
+}
+
+void print(const std::string& text, ConsoleColor color, bool bold, bool addNewline) {
+    std::lock_guard<std::mutex> lock(getGlobalPrintMutex());
+    const auto state = initializePrint();
+    static std::map<ConsoleColor, std::string> ANSIcolorCodes = {
+            {ConsoleColor::RED, "31"},
+            {ConsoleColor::GREEN, "32"},
+            {ConsoleColor::YELLOW, "33"},
+            {ConsoleColor::BLUE, "34"},
+            {ConsoleColor::MAGENTA, "35"},
+            {ConsoleColor::CYAN, "36"},
+    };
+#ifdef WIN32
+    static const std::map<ConsoleColor, WORD> fallbackColorCodes = {
+            {ConsoleColor::RED, FOREGROUND_RED},
+            {ConsoleColor::GREEN, FOREGROUND_GREEN},
+            {ConsoleColor::YELLOW, FOREGROUND_RED | FOREGROUND_GREEN},
+            {ConsoleColor::BLUE, FOREGROUND_BLUE},
+            {ConsoleColor::MAGENTA, FOREGROUND_RED | FOREGROUND_BLUE},
+            {ConsoleColor::CYAN, FOREGROUND_BLUE | FOREGROUND_GREEN},
+    };
+#endif
+
+    // Set color and bold
+    if(color != ConsoleColor::DEFAULT || bold) {
+        if(state.ansiSupported) {
+            std::string code = "\033[";
+            if(color != ConsoleColor::DEFAULT)
+                code += ANSIcolorCodes[color];
+            if(bold) {
+                if(color != ConsoleColor::DEFAULT)
+                    code += ";";
+                code += "1";
+            }
+            code += "m";
+            std::cout << code;
+        } else {
+#ifdef WIN32
+            auto currentAttributes = state.defaultAttributes | fallbackColorCodes[name];
+            if(bold)
+                currentAttributes |= FOREGROUND_INTENSITY;
+            SetConsoleTextAttribute(state.stdout, currentAttributes);
+#endif
+        }
+    }
+
+    // Print text
+    std::cout << text;
+
+    // Reset (if needed)
+    if(color != ConsoleColor::DEFAULT || bold) {
+        if(state.ansiSupported) {
+            std::cout << "\033[0m";
+        } else {
+#ifdef WIN32
+            SetConsoleTextAttribute(state.stdout, state.defaultAttributes);
+#endif
+        }
+    }
+
+    if(addNewline)
+        std::cout << std::endl;
+}
 
 } // end namespace fast

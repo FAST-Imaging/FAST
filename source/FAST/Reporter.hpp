@@ -2,6 +2,7 @@
 
 #include <map>
 #include <iostream>
+#include <sstream>
 #include <thread>
 #include "FASTExport.hpp"
 #ifdef WIN32
@@ -45,44 +46,30 @@ class FAST_EXPORT  Reporter {
 
         // Variable to keep track of first <<
         bool mFirst;
-#ifdef WIN32
-        static WORD m_defaultAttributes;
-#endif
+        std::string m_textBuffer;
 };
 
 template <class T>
 void Reporter::process(const T& content) {
     Method reportMethod = getMethod(mType);
 
+    std::stringstream stream;
     if(mFirst) {
         // Write prefix first
         if(reportMethod == COUT) {
             if(mType == INFO) {
-                std::cout << "INFO [" << std::this_thread::get_id() << "] ";
+                stream << "INFO [" << std::this_thread::get_id() << "] ";
             } else if(mType == WARNING) {
-#ifdef WIN32
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), (m_defaultAttributes & 0x00F0) | FOREGROUND_RED | FOREGROUND_GREEN | FOREGROUND_INTENSITY);
-#else
-                std::cout << "\033[1m";
-#endif
-                std::cout << "WARNING [" << std::this_thread::get_id() << "] ";
+                stream << "WARNING [" << std::this_thread::get_id() << "] ";
             } else if(mType == ERROR) {
-#ifdef WIN32
-                SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), (m_defaultAttributes & 0x00F0) | FOREGROUND_RED | FOREGROUND_INTENSITY);
-#else
-                std::cout << "\033[31;1m";
-#endif
-                std::cerr << "ERROR [" << std::this_thread::get_id() << "] ";
+                stream << "ERROR [" << std::this_thread::get_id() << "] ";
             }
         }
         mFirst = false;
     }
 
-    if(reportMethod == COUT) {
-        std::cout << content;
-    } else if(reportMethod == LOG) {
-        // Not implemented yet
-    }
+    stream << content;
+    m_textBuffer += stream.str();
 }
 
 template <class T>
