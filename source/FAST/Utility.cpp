@@ -1430,7 +1430,7 @@ std::mutex& getGlobalPrintMutex() {
 struct PrintState {
     bool ansiSupported;
 #ifdef WIN32
-    HANDLE stdout;
+    HANDLE handle;
     WORD defaultAttributes;
 #endif
 };
@@ -1441,13 +1441,13 @@ PrintState initializePrint() {
     state.ansiSupported = false;
     if(!initialized) {
 #ifdef WIN32
-        state.stdout = GetStdHandle(STD_OUTPUT_HANDLE);
+        state.handle = GetStdHandle(STD_OUTPUT_HANDLE);
         DWORD mode = 0;
-        if(!GetConsoleMode(state.stdout, &mode)) {
+        if(!GetConsoleMode(state.handle, &mode)) {
             state.ansiSupported = false;
         } else {
             mode |= ENABLE_VIRTUAL_TERMINAL_PROCESSING;
-            if(!SetConsoleMode(state.stdout, mode)) {
+            if(!SetConsoleMode(state.handle, mode)) {
                 state.ansiSupported = false;
             } else {
                 state.ansiSupported = true;
@@ -1457,7 +1457,7 @@ PrintState initializePrint() {
         if(!state.ansiSupported) {
             // Fallback
             CONSOLE_SCREEN_BUFFER_INFO Info;
-            GetConsoleScreenBufferInfo(state.stdout, &Info);
+            GetConsoleScreenBufferInfo(state.handle, &Info);
             state.defaultAttributes = Info.wAttributes & 0x00F0;
         }
 #else
@@ -1476,16 +1476,16 @@ void print(const std::string& text, ConsoleColor color, bool bold, bool addNewli
             {ConsoleColor::YELLOW, "33"},
             {ConsoleColor::BLUE, "34"},
             {ConsoleColor::MAGENTA, "35"},
-            {ConsoleColor::CYAN, "36"},
+            {ConsoleColor::CYAN, "36"}
     };
 #ifdef WIN32
-    static const std::map<ConsoleColor, WORD> fallbackColorCodes = {
+    static std::map<ConsoleColor, WORD> fallbackColorCodes = {
             {ConsoleColor::RED, FOREGROUND_RED},
             {ConsoleColor::GREEN, FOREGROUND_GREEN},
             {ConsoleColor::YELLOW, FOREGROUND_RED | FOREGROUND_GREEN},
             {ConsoleColor::BLUE, FOREGROUND_BLUE},
             {ConsoleColor::MAGENTA, FOREGROUND_RED | FOREGROUND_BLUE},
-            {ConsoleColor::CYAN, FOREGROUND_BLUE | FOREGROUND_GREEN},
+            {ConsoleColor::CYAN, FOREGROUND_BLUE | FOREGROUND_GREEN}
     };
 #endif
 
@@ -1507,7 +1507,7 @@ void print(const std::string& text, ConsoleColor color, bool bold, bool addNewli
             auto currentAttributes = state.defaultAttributes | fallbackColorCodes[color];
             if(bold)
                 currentAttributes |= FOREGROUND_INTENSITY;
-            SetConsoleTextAttribute(state.stdout, currentAttributes);
+            SetConsoleTextAttribute(state.handle, currentAttributes);
 #endif
         }
     }
@@ -1521,7 +1521,7 @@ void print(const std::string& text, ConsoleColor color, bool bold, bool addNewli
             std::cout << "\033[0m";
         } else {
 #ifdef WIN32
-            SetConsoleTextAttribute(state.stdout, state.defaultAttributes);
+            SetConsoleTextAttribute(state.handle, state.defaultAttributes);
 #endif
         }
     }
