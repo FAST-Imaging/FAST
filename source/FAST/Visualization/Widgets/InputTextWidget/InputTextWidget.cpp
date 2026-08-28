@@ -6,17 +6,7 @@
 
 namespace fast {
 
-InputTextWidget::InputTextWidget(std::string title, std::string text, bool singleLine, std::function<void(std::string)> callback, QWidget *parent) : QWidget(parent) {
-    m_callbackFunction = callback;
-    init(title, text, singleLine);
-}
-
-InputTextWidget::InputTextWidget(std::string title, std::string text, bool singleLine, InputTextWidgetCallback* callback, QWidget *parent) : QWidget(parent) {
-    m_callbackClass = callback;
-    init(title, text, singleLine);
-}
-
-void InputTextWidget::setText(std::string text) {
+void InputTextWidget::setText(const std::string& text) {
     emit updateTextSignal(QString(text.c_str()));
     std::lock_guard<std::mutex> lock(m_mutex);
     m_text = text;
@@ -32,7 +22,7 @@ std::string InputTextWidget::getText() {
     return text;
 }
 
-void InputTextWidget::init(std::string title, std::string text, bool singleLine) {
+void InputTextWidget::init(const std::string& title, const std::string& text, bool singleLine) {
     m_singleLine = singleLine;
     m_text = text;
     m_title = title;
@@ -40,11 +30,11 @@ void InputTextWidget::init(std::string title, std::string text, bool singleLine)
     if(singleLine) {
         m_inputWidget = new QLineEdit(text.c_str());
         connect(this, &InputTextWidget::updateTextSignal, (QLineEdit*)m_inputWidget, &QLineEdit::setText, Qt::QueuedConnection);
-        connect((QLineEdit*)m_inputWidget, &QLineEdit::textChanged, [=](QString str) {
+        connect((QLineEdit*)m_inputWidget, &QLineEdit::textChanged, [=](const QString& str) {
             setText(str.toStdString());
             if(m_callbackClass != nullptr) {
                 m_callbackClass->handle(str.toStdString());
-            } else {
+            } else if(m_callbackFunction) {
                 m_callbackFunction(str.toStdString());
             }
         });
@@ -56,7 +46,7 @@ void InputTextWidget::init(std::string title, std::string text, bool singleLine)
             setText(str.toStdString());
             if(m_callbackClass != nullptr) {
                 m_callbackClass->handle(str.toStdString());
-            } else {
+            } else if(m_callbackFunction) {
                 m_callbackFunction(str.toStdString());
             }
         });
@@ -68,6 +58,10 @@ void InputTextWidget::init(std::string title, std::string text, bool singleLine)
     }
     layout->addWidget(m_inputWidget);
     setLayout(layout);
+}
+
+void InputTextWidget::setCallbackClass(InputTextWidgetCallback* callback) {
+    m_callbackClass = callback;
 }
 
 }

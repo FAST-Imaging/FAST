@@ -14,6 +14,19 @@ namespace fast {
 #ifdef SWIG
 %nodefaultdtor InputTextWidget;
 %extend InputTextWidget {
+    /**
+   * @brief Create an input text widget
+   * @param title Title of input text widget (can contain HTML)
+   * @param text Initial text of input text widget
+   * @param singleLine Whether to use a single line input text widget or a multi-line widget
+   * @param callback Callback for when text is changed
+   * @param parent
+   */
+    InputTextWidget(const std::string& title = "", const std::string& text = "", bool singleLine = true, InputTextWidgetCallback* callback = nullptr, QWidget* parent = nullptr) {
+        auto widget = new InputTextWidget(title, text, singleLine, nullptr, parent);
+        widget->setCallbackClass(callback);
+        return widget;
+    }
     ~InputTextWidget() {
     }
 };
@@ -42,7 +55,7 @@ def InputTextCallback(func):
  */
 class InputTextWidgetCallback {
 public:
-    virtual void handle(std::string text) = 0;
+    virtual void handle(const std::string& text) = 0;
     virtual ~InputTextWidgetCallback() { std::cout << "Destroying InputTextWidgetCallback" << std::endl;};
 };
 
@@ -62,33 +75,28 @@ class FAST_EXPORT InputTextWidget : public QWidget {
          * @param callback Callback function for when text is changed
          * @param parent
          */
-        InputTextWidget(std::string title = "", std::string text = "", bool singleLine = true, std::function<void(std::string)> callback = {}, QWidget* parent = nullptr);
+        InputTextWidget(const std::string& title = "", const std::string& text = "", bool singleLine = true, std::function<void(std::string)> callback = {}, QWidget* parent = nullptr) : QWidget(parent) {
+            m_callbackFunction = callback;
+            init(title, text, singleLine);
+        }
 #endif
-        /**
-         * @brief Create an input text widget
-         * @param title Title of input text widget (can contain HTML)
-         * @param text Initial text of input text widget
-         * @param singleLine Whether to use a single line input text widget or a multi-line widget
-         * @param callback Callback for when text is changed
-         * @param parent
-         */
-        InputTextWidget(std::string title = "", std::string text = "", bool singleLine = true, InputTextWidgetCallback* callback = nullptr, QWidget* parent = nullptr);
         /**
          * @brief Set text
          * @param text
          */
-        void setText(std::string text);
+        void setText(const std::string& text);
         /**
          * @brief Get current text
          * @return text
          */
         std::string getText();
+        void setCallbackClass(InputTextWidgetCallback* callback);
 #ifndef SWIG
     Q_SIGNALS:
-        void updateTextSignal(QString text);
+        void updateTextSignal(const QString& text);
 #endif
     private:
-        void init(std::string title, std::string text, bool singleLine);
+        void init(const std::string& title, const std::string& text, bool singleLine);
         QWidget* m_inputWidget;
         QLabel* m_label;
         bool m_singleLine = true;
