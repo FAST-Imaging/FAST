@@ -526,6 +526,15 @@ void Window::setStyleSheet(const std::string& stylesheet) {
     mWidget->setStyleSheet(stylesheet.c_str());
 }
 
+void Window::setStyleSheetFile(const std::string &path) {
+    QFile file(path.c_str());
+    if(!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        throw Exception("Unable to open file " + path);
+    }
+    QTextStream in(&file);
+    mWidget->setStyleSheet(in.readAll());
+}
+
 void showMessage(const std::string& message, const std::string& title) {
     QMessageBox box;
     box.setWindowTitle(title.c_str());

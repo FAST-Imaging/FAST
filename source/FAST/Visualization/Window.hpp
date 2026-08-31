@@ -108,9 +108,16 @@ class FAST_EXPORT  Window : public QObject, public AttributeObject {
         /**
          * @brief Set a Qt stylesheet to style the widgets in this window.
          * Uses a syntax similar to that of CSS, called Qt Style Sheets (QSS).
-         * @param stylesheet
+         * @param stylesheet Stylesheet as string
          */
         void setStyleSheet(const std::string& stylesheet);
+
+        /**
+         * @brief Load Qt stylesheet from a file to style the widgets in this window.
+         * Uses a syntax similar to that of CSS, called Qt Style Sheets (QSS).
+         * @param path Path to stylesheet file to load
+         */
+        void setStyleSheetFile(const std::string& path);
 
         virtual std::shared_ptr<Window> connect(uint id, std::shared_ptr<DataObject> data);
         virtual std::shared_ptr<Window> connect(uint id, std::shared_ptr<ProcessObject> PO, uint portID = 0);
