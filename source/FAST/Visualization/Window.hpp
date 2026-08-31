@@ -105,6 +105,13 @@ class FAST_EXPORT  Window : public QObject, public AttributeObject {
          */
         void set3DMode();
 
+        /**
+         * @brief Set a Qt stylesheet to style the widgets in this window.
+         * Uses a syntax similar to that of CSS, called Qt Style Sheets (QSS).
+         * @param stylesheet
+         */
+        void setStyleSheet(const std::string& stylesheet);
+
         virtual std::shared_ptr<Window> connect(uint id, std::shared_ptr<DataObject> data);
         virtual std::shared_ptr<Window> connect(uint id, std::shared_ptr<ProcessObject> PO, uint portID = 0);
         std::shared_ptr<Window> connect(QWidget* widget, WidgetPosition position = WidgetPosition::BOTTOM);

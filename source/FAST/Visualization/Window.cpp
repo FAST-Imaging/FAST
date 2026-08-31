@@ -522,4 +522,8 @@ void Window::setCenterLayout(QLayout *layout) {
     m_mainVLayout->insertLayout(1, layout);
 }
 
+void Window::setStyleSheet(const std::string& stylesheet) {
+    mWidget->setStyleSheet(stylesheet.c_str());
+}
+
 } // end namespace fast
