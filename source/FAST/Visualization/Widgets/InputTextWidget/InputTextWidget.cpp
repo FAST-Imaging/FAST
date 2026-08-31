@@ -29,9 +29,14 @@ void InputTextWidget::init(const std::string& title, const std::string& text, bo
     // Use QueuedConnection to assure slot is called in main thread
     if(singleLine) {
         m_inputWidget = new QLineEdit(text.c_str());
+        // When text has changed in FAST, update GUI
         connect(this, &InputTextWidget::updateTextSignal, (QLineEdit*)m_inputWidget, &QLineEdit::setText, Qt::QueuedConnection);
+        // When text has changed in GUI, update the FAST string, and do callback
         connect((QLineEdit*)m_inputWidget, &QLineEdit::textChanged, [=](const QString& str) {
-            setText(str.toStdString());
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                m_text = str.toStdString();
+            }
             if(m_callbackClass != nullptr) {
                 m_callbackClass->handle(str.toStdString());
             } else if(m_callbackFunction) {
@@ -40,10 +45,20 @@ void InputTextWidget::init(const std::string& title, const std::string& text, bo
         });
     } else {
         m_inputWidget = new QPlainTextEdit(text.c_str());
-        connect(this, &InputTextWidget::updateTextSignal, (QPlainTextEdit*)m_inputWidget, &QPlainTextEdit::setPlainText, Qt::QueuedConnection);
+        ((QPlainTextEdit*)m_inputWidget)->moveCursor(QTextCursor::End);
+        // When text has changed in FAST, update GUI
+        connect(this, &InputTextWidget::updateTextSignal, this, [=](const QString& str) {
+            auto widget = (QPlainTextEdit*)m_inputWidget;
+            widget->setPlainText(str);
+            widget->moveCursor(QTextCursor::End);
+        }, Qt::QueuedConnection);
+        // When text has changed in GUI, update the FAST string, and do callback
         connect((QPlainTextEdit*)m_inputWidget, &QPlainTextEdit::textChanged, [=]() {
             QString str =((QPlainTextEdit*)m_inputWidget)->toPlainText();
-            setText(str.toStdString());
+            {
+                std::lock_guard<std::mutex> lock(m_mutex);
+                m_text = str.toStdString();
+            }
             if(m_callbackClass != nullptr) {
                 m_callbackClass->handle(str.toStdString());
             } else if(m_callbackFunction) {
