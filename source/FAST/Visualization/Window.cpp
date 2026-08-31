@@ -526,4 +526,11 @@ void Window::setStyleSheet(const std::string& stylesheet) {
     mWidget->setStyleSheet(stylesheet.c_str());
 }
 
+void showMessage(const std::string& message, const std::string& title) {
+    QMessageBox box;
+    box.setWindowTitle(title.c_str());
+    box.setText(message.c_str());
+    box.exec();
+}
+
 } // end namespace fast

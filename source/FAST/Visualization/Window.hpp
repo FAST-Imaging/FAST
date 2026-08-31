@@ -151,5 +151,15 @@ protected:
 
 };
 
+/**
+ * @brief Show a message in a popup window
+ *
+ * @param message Message to display
+ * @param title Optional title
+ *
+ * @ingroup window
+ */
+FAST_EXPORT void showMessage(const std::string& message, const std::string& title = "");
+
 } // end namespace fast
 
