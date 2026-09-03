@@ -101,6 +101,7 @@ public
 %template(LabelColors) std::map<uint, fast::Color>;
 %template(LabelNames) std::map<uint, std::string>;
 %template(StringMap) std::map<std::string, std::string>;
+%template(TableData) std::vector<std::pair<std::string, std::vector<std::string>>>;
 %template(UIntMap) std::map<uint, uint>;
 %template(StringFloatMap) std::map<std::string, float>;
 %template(StringFloatPair) std::pair<std::string, float>;
