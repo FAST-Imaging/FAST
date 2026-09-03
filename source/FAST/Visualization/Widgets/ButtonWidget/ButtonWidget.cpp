@@ -6,11 +6,14 @@
 
 namespace fast {
 
-void ButtonWidget::init(std::string text, bool checkable, bool checked) {
+void ButtonWidget::init(const std::string& text, bool checkable, bool checked) {
     auto layout = new QHBoxLayout();
     setLayout(layout);
     m_button = new QPushButton();
     m_button->setText(QString::fromStdString(text));
+    connect(this, &ButtonWidget::updateText, this, [=](const QString& str) {
+        m_button->setText(str);
+    }, Qt::QueuedConnection);
     m_button->setCheckable(checkable);
     if(checkable)
         m_button->setChecked(checked);
@@ -51,6 +54,14 @@ bool ButtonWidget::getChecked() const {
 
 void ButtonWidget::setChecked(bool checked) {
     m_button->setChecked(checked);
+}
+
+void ButtonWidget::setCallbackClass(ButtonWidgetCallback *callback) {
+    m_callbackClass = callback;
+}
+
+void ButtonWidget::setText(const std::string& text) {
+    emit updateText(QString::fromStdString(text));
 }
 
 }
