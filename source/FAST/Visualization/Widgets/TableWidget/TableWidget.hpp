@@ -69,6 +69,8 @@ class FAST_EXPORT TableWidget : public QWidget {
         );
         std::map<std::string, std::string> getRow(int i);
         void setRow(int i, std::map<std::string, std::string> row);
+        void setHighlightedRow(int row);
+        void setHighlightedColumn(int column);
         void show(bool maximized = false);
         void close();
 #ifndef SWIG

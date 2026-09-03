@@ -110,4 +110,14 @@ void TableWidget::close() {
     QWidget::close();
 }
 
+void TableWidget::setHighlightedRow(int row) {
+    // TODO thread safety?
+    m_tableWidget->selectRow(row);
+}
+
+void TableWidget::setHighlightedColumn(int column) {
+    // TODO thread safety?
+    m_tableWidget->selectColumn(column);
+}
+
 }
