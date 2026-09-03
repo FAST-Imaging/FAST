@@ -8,6 +8,7 @@
 #include <QMessageBox>
 #include <QGridLayout>
 #include <QPluginLoader>
+#include <QFileDialog>
 #ifndef WIN32
 #ifndef __APPLE__
 #include <X11/Xlib.h>
@@ -535,11 +536,61 @@ void Window::setStyleSheetFile(const std::string &path) {
     mWidget->setStyleSheet(in.readAll());
 }
 
+void Window::resetViews() {
+    for(auto& view : getViews()) {
+        view->reinitialize();
+    }
+}
+
 void showMessage(const std::string& message, const std::string& title) {
+    Window::initializeQtApp();
     QMessageBox box;
     box.setWindowTitle(title.c_str());
     box.setText(message.c_str());
     box.exec();
+}
+
+std::vector<std::string> showFileDialog(bool files, bool folders, bool forSaving, bool allowMultiple, const std::string& message, const std::string& filters, const std::string& folder) {
+    Window::initializeQtApp();
+
+    if(files && folders && allowMultiple)
+        throw Exception("Selecting multiple files and folders is not supported");
+    if(files && folders)
+        throw Exception("Selecting files and folders is not supported");
+
+    std::vector<std::string> paths;
+    if(!forSaving) {
+        if(files) {
+            if(allowMultiple) {
+                auto filenames = QFileDialog::getOpenFileNames(nullptr, QString::fromStdString(message), QString::fromStdString(folder), QString::fromStdString(filters));
+                for(const auto& item : filenames) {
+                    paths.push_back(item.toStdString());
+                }
+            } else {
+                auto filename = QFileDialog::getOpenFileName(nullptr, QString::fromStdString(message), QString::fromStdString(folder), QString::fromStdString(filters));
+                if(!filename.isEmpty())
+                    paths.push_back(filename.toStdString());
+            }
+        } else if(folders) {
+            if(allowMultiple) {
+                throw Exception("Selecting multiple folders is not supported");
+            } else {
+                auto selectedFolder = QFileDialog::getExistingDirectory(nullptr, QString::fromStdString(message), QString::fromStdString(folder));
+                if(!selectedFolder.isEmpty())
+                    paths.push_back(selectedFolder.toStdString());
+            }
+        }
+    } else {
+        if(files) {
+            auto filename = QFileDialog::getSaveFileName(nullptr, QString::fromStdString(message), QString::fromStdString(folder), QString::fromStdString(filters));
+            if(!filename.isEmpty())
+                paths.push_back(filename.toStdString());
+        } else if(folders) {
+            throw Exception("Select folder for saving is not supported");
+        }
+    }
+
+    return paths;
 }
 
 } // end namespace fast

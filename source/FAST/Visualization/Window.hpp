@@ -119,6 +119,12 @@ class FAST_EXPORT  Window : public QObject, public AttributeObject {
          */
         void setStyleSheetFile(const std::string& path);
 
+        /**
+         * @brief Reset all views, i.e. reset the camera, in this Window-
+         * This will call reinitialize() on all the views of this window.
+         */
+        void resetViews();
+
         virtual std::shared_ptr<Window> connect(uint id, std::shared_ptr<DataObject> data);
         virtual std::shared_ptr<Window> connect(uint id, std::shared_ptr<ProcessObject> PO, uint portID = 0);
         std::shared_ptr<Window> connect(QWidget* widget, WidgetPosition position = WidgetPosition::BOTTOM);
@@ -126,7 +132,7 @@ class FAST_EXPORT  Window : public QObject, public AttributeObject {
         std::string getNameOfClass() {
             return "Window";
         }
-protected:
+    protected:
         void startComputationThread();
         void stopComputationThread();
         std::shared_ptr<ComputationThread> getComputationThread();
@@ -168,5 +174,37 @@ protected:
  */
 FAST_EXPORT void showMessage(const std::string& message, const std::string& title = "");
 
+#ifdef SWIG
+%rename(_cpp_showFileDialog) showFileDialog;
+#endif
+
+/**
+ * @brief Show a file dialog for selecting files or folders for opening or saving.
+ *
+ * @param files Whether to open files
+ * @param folders Whether to open folders
+ * @param forSaving Wehther for opening or saving
+ * @param allowMultiple Whether to allow selecting multiple files when opening
+ * @param message Message to show in dialog
+ * @param filters File filters to use
+ * @param folder Folder to show initially
+ *
+ * @return list of files or folders selected
+ */
+FAST_EXPORT std::vector<std::string> showFileDialog(bool files = true, bool folders = false, bool forSaving = false, bool allowMultiple = false, const std::string& message = "", const std::string& filters = "", const std::string& folder = "");
+
+#ifdef SWIG
+%pythoncode %{
+def showFileDialog(files=True, folders=False, forSaving=False, allowMultiple=False, message='', filters='', folder=''):
+    result = _cpp_showFileDialog(files, folders, forSaving, allowMultiple, message, filters, folder)
+    if len(result) == 0:
+        return ''
+    if not allowMultiple:
+        result = result[0]
+    return result
+
+showFileDialog.__doc__ = _cpp_showFileDialog.__doc__
+%}
+#endif
 } // end namespace fast
 
