@@ -10,7 +10,7 @@ If you want to make an advanced GUI with FAST in Python you should use PySide2 a
 However, if you just want to make a simple GUI you can also use the builtin widgets in FAST, which are simple wrappers
 of some of Qt's widgets and dialogs.
 A **widget** is a graphical element for user interaction, such as a button or a window etc.
-This tutorial will show how to use these widgets in FAST to make simple GUIs quickly.
+This tutorial will start by showing how to use these widgets in FAST to make simple GUIs quickly.
 
 Popup message
 ---------------------
@@ -146,6 +146,7 @@ Input text
 ---------------------
 Use the InputTextWidget to enable users to write and provide some text to your program:
 @code{.py}
+import fast
 importer = fast.ImageFileImporter.create(fast.Config.getTestDataPath() + 'US/US-2D.jpg')
 input = fast.InputTextWidget()
 button = fast.ButtonWidget('Done', False, fast.ButtonCallback(lambda x: fast.showMessage('You wrote: ' + input.getText())))
@@ -154,11 +155,28 @@ fast.display2D(importer, widgets=[input, button])
 
 For multiline input text, set singleLine=False in constructor of InputTextWidget:
 @code{.py}
+import fast
 importer = fast.ImageFileImporter.create(fast.Config.getTestDataPath() + 'US/US-2D.jpg')
 input = fast.InputTextWidget(singleLine=False)
 button = fast.ButtonWidget('Done', False, fast.ButtonCallback(lambda x: fast.showMessage('You wrote: ' + input.getText())))
 fast.display2D(importer, widgets=[input, button])
 @endcode
+
+
+Options
+---------------------
+
+The OptionsWidget can be used to let the user select one of several predefined options in a dropdown button.
+You can specify a title, and a placeholder text. If the placeholder text is specified, no option is selected initially.
+If no placeholder text is specified, option 0 is initially selected, unless you set `selected=index`.
+
+@code{.py}
+import fast
+importer = fast.ImageFileImporter.create(fast.Config.getTestDataPath() + 'US/US-2D.jpg')
+options = fast.OptionsWidget(['Option 1', 'Option 2', 'Option 3'], 'Cool options:', 'Select an option ...', callback=fast.OptionsCallback(lambda i, x: fast.showMessage('You selected: ' + x)))
+fast.display2D(importer, widgets=[options])
+@endcode
+
 
 Table
 ---------------------
@@ -192,7 +210,7 @@ widget.show(maximized=True)
 Playback controls
 ---------------------
 The PlaybackWidget is useful when you want some simple GUI to play/pause/stop, scroll through the frames or change the framerate of a stream of data.
-Give the streamer as input to the PlaybackWidget constructor and connect it to your window:
+Give the RandomAccessStreamer as input to the PlaybackWidget constructor and connect it to your window:
 
 @code{.py}
 import fast
