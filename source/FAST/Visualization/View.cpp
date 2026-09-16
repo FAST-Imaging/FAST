@@ -40,12 +40,14 @@ void View::removeRenderer(Renderer::pointer rendererToRemove) {
     std::lock_guard<std::mutex> lock(m_mutex);
 	mVolumeRenderers.erase(std::remove(mVolumeRenderers.begin(), mVolumeRenderers.end(), rendererToRemove), mVolumeRenderers.end());
     mNonVolumeRenderers.erase(std::remove(mNonVolumeRenderers.begin(), mNonVolumeRenderers.end(), rendererToRemove), mNonVolumeRenderers.end());
+    scheduleRedraw();
 }
 
 void View::removeAllRenderers() {
     std::lock_guard<std::mutex> lock(m_mutex);
     mVolumeRenderers.clear();
     mNonVolumeRenderers.clear();
+    scheduleRedraw();
 }
 
 void View::setBackgroundColor(Color color) {
@@ -78,13 +80,8 @@ View::View() {
     mQuit = false;
     mCameraSet = false;
     mAutoUpdateCamera = false;
-
-    mFramerate = 60;
-    // Set up a timer that will call update on this object at a regular interval
-    timer = new QTimer(this);
-    timer->start(1000 / mFramerate); // in milliseconds
-    timer->setSingleShot(false);
-    QObject::connect(timer, SIGNAL(timeout()), this, SLOT(updateGL()));
+    m_needsToRedraw = true;
+    m_postponedRedraw = false;
 
     m_textRenderer = TextRenderer::create(42, Color::Black(), TextRenderer::STYLE_NORMAL, TextRenderer::POSITION_BOTTOM_LEFT);
     m_lineRenderer = LineRenderer::create();
@@ -97,6 +94,32 @@ View::View() {
     if(!context->isValid() || !context->isSharing()) {
         throw Exception("The custom Qt GL context in fast::View is invalid!");
     }
+
+    QObject::connect(this, &View::redraw, this, &QGLWidget::updateGL, Qt::QueuedConnection); // for doing updateGL in main thread
+}
+
+void View::scheduleRedraw(bool now) {
+    if(m_needsToRedraw) // Qt has already been told to redraw, just return
+        return;
+    if(!now) {
+        if(!m_postponedRedraw) {
+            m_postponedRedraw = true;
+            std::chrono::duration<float, std::milli> duration = std::chrono::high_resolution_clock::now() - m_lastRedrawRequest;
+            if(duration.count() <= 16) { // Do not issue redraw too often, 16 ~= 60 FPS
+                // Have to call scheduleRedraw again later
+                std::thread thread([=]() {
+                    std::this_thread::sleep_for(std::chrono::milliseconds(16 - (int)duration.count()));
+                    scheduleRedraw();
+                    m_postponedRedraw = false;
+                });
+                thread.detach();
+                return;
+            }
+        }
+    }
+    m_lastRedrawRequest = std::chrono::high_resolution_clock::now();
+    m_needsToRedraw = true; // Tell Qt to redraw
+    emit redraw();
 }
 
 void View::loadAttributes() {
@@ -170,17 +193,6 @@ View::~View() {
     quit();
 }
 
-
-void View::setMaximumFramerate(unsigned int framerate) {
-    if(framerate == 0)
-        throw Exception("Framerate cannot be 0.");
-
-    mFramerate = framerate;
-    timer->stop();
-    timer->start(1000 / mFramerate); // in milliseconds
-    timer->setSingleShot(false);
-}
-
 void View::execute() {
 }
 
@@ -193,8 +205,16 @@ void View::updateRenderersInput(int executeToken) {
 }
 
 void View::updateRenderers(int executeToken) {
+    bool mustRedraw = false;
     for(auto renderer : getRenderers()) {
+        if(renderer->isModified())
+            mustRedraw = true;
+        if(renderer->hasNewInputData(0)) // TODO change function to not take port?
+            mustRedraw = true;
         renderer->update(executeToken);
+    }
+    if(mustRedraw) {
+        scheduleRedraw(false);
     }
 }
 
@@ -458,6 +478,7 @@ void View::recalculateCamera() {
         m3DViewingTransformation.pretranslate(mCameraPosition);
         mCentroidZ = -centroid[2];
     }
+    scheduleRedraw();
 }
 
 void View::reinitialize() {
@@ -531,7 +552,7 @@ void View::initializeGL() {
 
 
 void View::paintGL() {
-
+    m_needsToRedraw = false;
     mRuntimeManager->startRegularTimer("paint");
 
     if(!mIsIn2DMode && !mVolumeRenderers.empty())
@@ -598,7 +619,7 @@ void View::paintGL() {
         mRuntimeManager->stopRegularTimer("draw");
     }
 
-    glFinish();
+    //glFinish(); // Is this needed?
     mRuntimeManager->stopRegularTimer("paint");
 }
 
@@ -629,6 +650,7 @@ void View::resizeGL(int width, int height) {
         fieldOfViewX = aspect * fieldOfViewY;
         mPerspectiveMatrix = loadPerspectiveMatrix(fieldOfViewY, aspect, zNear, zFar);
     }
+    scheduleRedraw();
 }
 
 void View::keyPressEvent(QKeyEvent *event) {
@@ -642,6 +664,7 @@ void View::keyPressEvent(QKeyEvent *event) {
                 float actualMovementX = width()*0.1 * ((mRight - mLeft) / width());
                 mCameraPosition[0] += actualMovementX;
                 m3DViewingTransformation.pretranslate(Vector3f(actualMovementX, 0, 0));
+                scheduleRedraw();
             }
             break;
         case Qt::Key_Right:
@@ -650,6 +673,7 @@ void View::keyPressEvent(QKeyEvent *event) {
                 float actualMovementX = width()*0.1 * ((mRight - mLeft) / width());
                 mCameraPosition[0] -= actualMovementX;
                 m3DViewingTransformation.pretranslate(Vector3f(-actualMovementX, 0, 0));
+                scheduleRedraw();
             }
             break;
         case Qt::Key_Down:
@@ -658,6 +682,7 @@ void View::keyPressEvent(QKeyEvent *event) {
                 float actualMovementY = height()*0.1 * ((mRight - mLeft) / height());
                 mCameraPosition[1] = actualMovementY;
                 m3DViewingTransformation.pretranslate(Vector3f(0, actualMovementY, 0));
+                scheduleRedraw();
             }
             break;
         case Qt::Key_Up:
@@ -666,6 +691,7 @@ void View::keyPressEvent(QKeyEvent *event) {
                 float actualMovementY = height()*0.1 * ((mRight - mLeft) / height());
                 mCameraPosition[1] = -actualMovementY;
                 m3DViewingTransformation.pretranslate(Vector3f(0, -actualMovementY, 0));
+                scheduleRedraw();
             }
             break;
     }
@@ -715,6 +741,7 @@ void View::mouseMoveEvent(QMouseEvent *event) {
         m3DViewingTransformation.prerotate(Q.toRotationMatrix()); // Rotate
         m3DViewingTransformation.pretranslate(newRotationPoint); // Move back
     }
+    scheduleRedraw();
 }
 
 void View::mousePressEvent(QMouseEvent *event) {
@@ -729,6 +756,7 @@ void View::mousePressEvent(QMouseEvent *event) {
         previousY = event->y();
         mRightButtonIsPressed = true;
     }
+    scheduleRedraw();
 }
 
 void View::wheelEvent(QWheelEvent *event) {
@@ -779,6 +807,7 @@ void View::wheelEvent(QWheelEvent *event) {
             m3DViewingTransformation.pretranslate(Vector3f(0, 0, -(zFar - zNear) * 0.05f));
         }
     }
+    scheduleRedraw();
 }
 
 void View::mouseReleaseEvent(QMouseEvent *event) {
@@ -842,6 +871,7 @@ void View::setZoom(float zoom) {
         mCameraPosition[2] = mCameraPosition[2] / zoom;
         m3DViewingTransformation.pretranslate(Vector3f(0, 0, diff));
     }
+    scheduleRedraw();
 }
 
 bool View::eventFilter(QObject *object, QEvent *event) {

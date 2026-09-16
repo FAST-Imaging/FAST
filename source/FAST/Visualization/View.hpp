@@ -29,7 +29,6 @@ class FAST_EXPORT  View : public QGLWidget, public ProcessObject, protected QOpe
         void wheelEvent(QWheelEvent* event);
         void changeEvent(QEvent* event);
         bool eventFilter(QObject* object, QEvent* event);
-        void setMaximumFramerate(unsigned int framerate);
         void setCameraInputConnection(DataChannel::pointer port);
         void set2DMode();
         void set3DMode();
@@ -63,6 +62,9 @@ class FAST_EXPORT  View : public QGLWidget, public ProcessObject, protected QOpe
          * @param enable
          */
         void setScalebar(float enable);
+        void scheduleRedraw(bool now = true);
+    Q_SIGNALS:
+        void redraw();
     private:
         uint m_FBO = 0;
         uint m_textureColor = 0;
@@ -80,12 +82,14 @@ class FAST_EXPORT  View : public QGLWidget, public ProcessObject, protected QOpe
 		Matrix4f mPerspectiveMatrix;
 
         void execute();
-        QTimer* timer;
-        unsigned int mFramerate;
-       
+
         Color mBackgroundColor;
         
         bool mQuit;
+
+        std::atomic_bool m_needsToRedraw;
+        std::atomic_bool m_postponedRedraw;
+        std::chrono::high_resolution_clock::time_point m_lastRedrawRequest;
         
         float m_zoom = 1.0f;
 		float zNear, zFar;
@@ -122,9 +126,6 @@ class FAST_EXPORT  View : public QGLWidget, public ProcessObject, protected QOpe
 
 		std::mutex m_mutex;
 		std::atomic_bool m_initialized = false;
-
-    friend class ComputationThread;
-
 };
 
 } // end namespace fast

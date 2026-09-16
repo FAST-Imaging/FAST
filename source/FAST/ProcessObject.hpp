@@ -131,6 +131,7 @@ class FAST_EXPORT ProcessObject : public AttributeObject {
          */
         template <class DataType>
         std::shared_ptr<DataType> getOutput(uint portID = 0);
+        std::map<uint, DataChannel::pointer> getInputConnections() const;
         int getNrOfInputConnections() const;
         int getNrOfOutputPorts() const;
         int getNrOfInputPorts() const;
@@ -151,6 +152,7 @@ class FAST_EXPORT ProcessObject : public AttributeObject {
          * @param modified
          */
         void setModified(bool modified);
+        bool isModified();
 
         template <class DataType>
         std::shared_ptr<DataType> updateAndGetOutputData(uint portID = 0);
@@ -190,7 +192,7 @@ class FAST_EXPORT ProcessObject : public AttributeObject {
         ProcessObject();
         // Flag to indicate whether the object has been modified
         // and should be executed again
-        bool mIsModified;
+        std::atomic_bool mIsModified;
 
         // An integer id which act as a token of when this PO last executed
         int m_lastExecuteToken = -1;
@@ -335,6 +337,7 @@ class FAST_EXPORT ProcessObject : public AttributeObject {
                 OpenCLDevice::pointer device = nullptr
         ) const;
 #endif
+        friend class ComputationThread;
 };
 
 template<class DataType>

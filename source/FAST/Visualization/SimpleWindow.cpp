@@ -11,10 +11,6 @@ void SimpleWindow::removeAllRenderers() {
     getViews()[0]->removeAllRenderers();
 }
 
-void SimpleWindow::setMaximumFramerate(unsigned int framerate) {
-    getViews()[0]->setMaximumFramerate(framerate);
-}
-
 SimpleWindow::~SimpleWindow() {
 }
 

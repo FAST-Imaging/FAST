@@ -359,6 +359,10 @@ int ProcessObject::getNrOfInputConnections() const {
     return mInputConnections.size();
 }
 
+std::map<uint, DataChannel::pointer> ProcessObject::getInputConnections() const {
+    return mInputConnections;
+}
+
 void ProcessObject::stopPipeline() {
     decltype(mInputConnections) parents;
     {
@@ -373,8 +377,39 @@ void ProcessObject::stopPipeline() {
 }
 
 bool ProcessObject::hasNewInputData(uint portID) {
-    std::lock_guard<std::mutex> lock(m_mutex);
-    return mInputConnections.at(portID)->hasCurrentData();
+    bool newInputData = false;
+    decltype(mInputConnections) parents;
+    decltype(mLastProcessed) lastProcessed;
+    {
+        std::lock_guard<std::mutex> lock(m_mutex);
+        parents = mInputConnections;
+        lastProcessed = mLastProcessed;
+    }
+    for(const auto& parent : parents) {
+        if(lastProcessed.count(parent.first) > 0) {
+            // Compare the last processed data with the new data for this data port
+            std::pair<DataObject::pointer, uint64_t> data = lastProcessed[parent.first];
+
+            auto port = parent.second;
+            if(port->hasCurrentData()) {
+                auto previousData = data.first;
+                auto previousTimestamp = data.second;
+                try {
+                    auto currentData = port->getFrame();
+                    auto currentTimestamp = currentData->getTimestamp();
+                    //std::cout << port->getProcessObject()->getNameOfClass() << ": " << currentData << " " << previousData << " size: " << port->getSize() << std::endl;
+                    if(currentData != previousData || previousTimestamp < currentTimestamp) { // There has arrived new data, or data has changed
+                        newInputData = true;
+                    }
+                } catch(Exception &e) {
+                    reportWarning() << "Exception in ProcessObject: " << e.what() << reportEnd();
+                }
+            }
+        } else {
+            newInputData = true;
+        }
+    }
+    return newInputData;
 }
 
 int ProcessObject::getNrOfOutputPorts() const {
@@ -498,6 +533,10 @@ void ProcessObject::createInlineOpenCLProgram(std::string sourceCode, std::strin
     program->setName(name);
     program->setSourceCode(sourceCode);
     mOpenCLPrograms[name] = program;
+}
+
+bool ProcessObject::isModified() {
+    return mIsModified;
 }
 
 OpenCLBuffer ProcessObject::createBuffer(std::size_t size, KernelMemoryAccess kernelAccess, HostMemoryAccess hostAccess,

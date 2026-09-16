@@ -44,18 +44,41 @@ void ComputationThread::run() {
             std::unique_lock<std::mutex> lock(mUpdateThreadMutex); // this locks the mutex
             mViews = getViews();
             processObjects = getProcessObjects();
+            std::set<std::shared_ptr<ProcessObject>> setOfprocessObjects;
+            setOfprocessObjects.insert(processObjects.begin(), processObjects.end());
             if(mStop)
                 break;
-            if(processObjects.size() > 0)
-                canUpdate = true;
             for(View* view : mViews) {
                 auto rendererList = view->getRenderers();
-                if(rendererList.size() > 0)
+                setOfprocessObjects.insert(rendererList.begin(), rendererList.end());
+            }
+
+            // Find all process objects in pipeline and check if any are modified, or if any streamers have new data which must be processed
+            std::queue<ProcessObject::pointer> queue;
+            for(const auto& PO : setOfprocessObjects)
+                queue.push(PO);
+            while(!queue.empty()) {
+                auto PO = queue.front();
+                queue.pop();
+                if(PO->isModified()) {
                     canUpdate = true;
+                    break;
+                }
+                if(PO->hasNewInputData(0)) {
+                    canUpdate = true;
+                    break;
+                }
+                setOfprocessObjects.insert(PO);
+                for(const auto& connection : PO->getInputConnections()) {
+                    auto parentPO = connection.second->getProcessObject();
+                    if(setOfprocessObjects.count(parentPO) == 0) {
+                        queue.push(parentPO);
+                    }
+                }
             }
         }
-		if(!canUpdate) { // There is nothing for this computation thread to do atm, sleep a short while
-			std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		if(!canUpdate) { // There is nothing for this computation thread to do atm, perform microsleep
+			std::this_thread::sleep_for(std::chrono::milliseconds(1));
 			continue;
 		}
 		bool isStreaming = false;

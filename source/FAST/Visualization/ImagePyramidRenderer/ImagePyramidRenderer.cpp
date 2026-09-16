@@ -105,8 +105,8 @@ int ImagePyramidRenderer::loadTileTexture(std::string tileID) {
             return 0;
         }
         if(m_postProcessingSharpening) {
-            m_sharpening->setInputData(tile);
-            tile = m_sharpening->updateAndGetOutputData<Image>();
+            m_sharpening->connect(tile);
+            tile = m_sharpening->run()->getOutput<Image>();
         }
     }
     auto tileAccess = tile->getImageAccess(ACCESS_READ);
@@ -147,12 +147,21 @@ int ImagePyramidRenderer::loadTileTexture(std::string tileID) {
     GLint compressedImageSize = 0;
     glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compressedImageSize);
     glBindTexture(GL_TEXTURE_2D, 0);
-    glFinish(); // Make sure texture is done before adding it
+    GLsync uploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    glFlush();
 
+    bool isEmpty;
     {
         std::lock_guard<std::mutex> lock(m_tileQueueMutex);
         mTexturesToRender[tileID] = textureID;
+        m_textureFences[tileID] = uploadFence;
+        isEmpty = m_tileQueue.empty();
     }
+    // If queue is empty, wait for sync to finish
+    if(isEmpty) {
+        glClientWaitSync(uploadFence, 0, 1e9);
+    }
+    m_view->scheduleRedraw();
     return compressedImageSize;
 }
 
@@ -355,12 +364,12 @@ void ImagePyramidRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatr
                 uint textureID;
                 if(m_view != nullptr) {
                     // Is patch in cache?
-                    bool textureReady = false;
+                    bool textureLoaded = false;
                     {
                         std::lock_guard<std::mutex> lock(m_tileQueueMutex);
-                        textureReady = mTexturesToRender.count(tileString) > 0;
+                        textureLoaded = mTexturesToRender.count(tileString) > 0;
                     }
-                    if(!textureReady) {
+                    if(!textureLoaded) {
                         // Add to queue if not in cache
                         {
                             std::lock_guard<std::mutex> lock(m_tileQueueMutex);
@@ -377,6 +386,20 @@ void ImagePyramidRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatr
                 } else {
                     int bytes = loadTileTexture(tileString);
                     textureID = mTexturesToRender[tileString];
+                }
+
+                // Check whether texture is ready
+                {
+                    std::lock_guard<std::mutex> lock(m_tileQueueMutex);
+                    if(m_textureFences.count(tileString) > 0) {
+                        auto waitReturn = glClientWaitSync(m_textureFences[tileString], 0, 0);
+                        if(waitReturn == GL_ALREADY_SIGNALED || waitReturn == GL_CONDITION_SATISFIED) {
+                            glDeleteSync(m_textureFences[tileString]);
+                            m_textureFences.erase(tileString);
+                        } else {
+                            continue;
+                        }
+                    }
                 }
 
                 if(textureID == 0) // This tile was missing or something, just skip it

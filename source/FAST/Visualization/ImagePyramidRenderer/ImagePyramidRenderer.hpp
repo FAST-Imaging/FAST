@@ -17,7 +17,7 @@ class ImageSharpening;
 class FAST_EXPORT ImagePyramidRenderer : public Renderer {
     FAST_PROCESS_OBJECT(ImagePyramidRenderer)
     public:
-        FAST_CONSTRUCTOR(ImagePyramidRenderer, bool, sharpening, = true)
+        FAST_CONSTRUCTOR(ImagePyramidRenderer, bool, sharpening, = false)
         void setSharpening(bool sharpening);
         bool getSharpening() const;
         void loadAttributes() override;
@@ -29,6 +29,7 @@ class FAST_EXPORT ImagePyramidRenderer : public Renderer {
              int viewHeight);
 
         std::unordered_map<std::string, uint> mTexturesToRender;
+        std::unordered_map<std::string, GLsync> m_textureFences;
         std::unordered_map<uint, std::shared_ptr<ImagePyramid>> mImageUsed;
         std::unordered_map<std::string, uint> mVAO;
         std::unordered_map<std::string, uint> mVBO;
@@ -46,7 +47,7 @@ class FAST_EXPORT ImagePyramidRenderer : public Renderer {
 
         int m_currentLevel = -1;
 
-        bool m_postProcessingSharpening = true;
+        bool m_postProcessingSharpening = false;
         std::shared_ptr<ImageSharpening> m_sharpening;
 
         std::shared_ptr<ImagePyramid> m_input;

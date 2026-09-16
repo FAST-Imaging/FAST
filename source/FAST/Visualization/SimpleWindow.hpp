@@ -31,7 +31,6 @@ class FAST_EXPORT SimpleWindow : public Window {
         void addRenderer(std::shared_ptr<Renderer> renderer);
         void addWidget(QWidget* widget);
         void removeAllRenderers();
-        void setMaximumFramerate(unsigned int framerate);
         View* getView();
         ~SimpleWindow();
         std::shared_ptr<SimpleWindow> connect(std::shared_ptr<Renderer> renderer);
