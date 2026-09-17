@@ -171,7 +171,7 @@ int SegmentationRenderer::loadTileTexture(std::string tileID) {
         mPyramidTexturesToRender[tileID] = textureID;
     }
 
-    m_view->scheduleRedraw();
+    m_view->scheduleRedraw(false);
 
     return compressedImageSize;
 }

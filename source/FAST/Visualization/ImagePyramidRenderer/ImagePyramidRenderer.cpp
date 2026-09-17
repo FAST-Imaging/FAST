@@ -130,7 +130,7 @@ int ImagePyramidRenderer::loadTileTexture(std::string tileID) {
 
     // WSI data from openslide is stored as ARGB, need to handle this here: BGRA and reverse
     if(m_input->isBGRA()) {
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA, tile->getWidth(), tile->getHeight(), 0, GL_BGRA,
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGB, tile->getWidth(), tile->getHeight(), 0, GL_BGRA,
                      GL_UNSIGNED_BYTE,
                      tileAccess->get());
     } else {
@@ -139,7 +139,7 @@ int ImagePyramidRenderer::loadTileTexture(std::string tileID) {
                          GL_UNSIGNED_BYTE,
                          tileAccess->get());
         } else if(tile->getNrOfChannels() == 4) {
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGBA, tile->getWidth(), tile->getHeight(), 0, GL_RGBA,
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_COMPRESSED_RGB, tile->getWidth(), tile->getHeight(), 0, GL_RGBA,
                          GL_UNSIGNED_BYTE,
                          tileAccess->get());
         }
@@ -161,7 +161,7 @@ int ImagePyramidRenderer::loadTileTexture(std::string tileID) {
     if(isEmpty) {
         glClientWaitSync(uploadFence, 0, 1e9);
     }
-    m_view->scheduleRedraw();
+    m_view->scheduleRedraw(false);
     return compressedImageSize;
 }
 
