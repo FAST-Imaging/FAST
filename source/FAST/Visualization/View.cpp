@@ -102,24 +102,32 @@ void View::scheduleRedraw(bool now) {
     if(m_needsToRedraw) // Qt has already been told to redraw, just return
         return;
     if(!now) {
-        if(!m_postponedRedraw) {
-            m_postponedRedraw = true;
+        if(!m_postponedRedraw) { // Check whether postponed draw is already scheduled
             std::chrono::duration<float, std::milli> duration = std::chrono::high_resolution_clock::now() - m_lastRedrawRequest;
-            if(duration.count() <= 16) { // Do not issue redraw too often, 16 ~= 60 FPS
+            if(duration.count() < 16) { // Do not issue redraw too often, 16 ~= 60 FPS
+                m_postponedRedraw = true;
                 // Have to call scheduleRedraw again later
                 std::thread thread([=]() {
                     std::this_thread::sleep_for(std::chrono::milliseconds(16 - (int)duration.count()));
-                    scheduleRedraw();
+                    scheduleRedraw(true); // Draw now
                     m_postponedRedraw = false;
                 });
                 thread.detach();
-                return;
+            } else {
+                // Long ago since drawing, emit drawing..
+                m_lastRedrawRequest = std::chrono::high_resolution_clock::now();
+                m_needsToRedraw = true; // Tell Qt to redraw
+                emit redraw();
             }
+        } else {
+            // Already have a postponed redraw
         }
+    } else {
+        // Draw now
+        m_lastRedrawRequest = std::chrono::high_resolution_clock::now();
+        m_needsToRedraw = true; // Tell Qt to redraw
+        emit redraw();
     }
-    m_lastRedrawRequest = std::chrono::high_resolution_clock::now();
-    m_needsToRedraw = true; // Tell Qt to redraw
-    emit redraw();
 }
 
 void View::loadAttributes() {
@@ -776,17 +784,30 @@ void View::wheelEvent(QWheelEvent *event) {
 		float currentPosX = (event->position().x()/width())*(mRight - mLeft) + mLeft;
         float currentPosY = (event->position().y()/height())*(mTop - mBottom) + mBottom;
         // First: Zoom towards center
+        float newLeft, newRight, newBottom, newTop;
         if(event->delta() > 0) {
-            mLeft = mLeft + targetSizeX*0.5f;
-            mRight = mRight - targetSizeX*0.5f;
-            mBottom = mBottom + targetSizeY * 0.5f;
-            mTop = mTop - targetSizeY*0.5f;
+            newLeft = mLeft + targetSizeX*0.5f;
+            newRight = mRight - targetSizeX*0.5f;
+            newBottom = mBottom + targetSizeY * 0.5f;
+            newTop = mTop - targetSizeY*0.5f;
         } else if(event->delta() < 0) {
-            mLeft = mLeft - targetSizeX * 0.5f;;
-            mRight = mRight + targetSizeX*0.5f;
-            mBottom = mBottom - targetSizeY*0.5f;
-            mTop = mTop + targetSizeY*0.5f;
+            newLeft = mLeft - targetSizeX * 0.5f;;
+            newRight = mRight + targetSizeX*0.5f;
+            newBottom = mBottom - targetSizeY*0.5f;
+            newTop = mTop + targetSizeY*0.5f;
         }
+        if(m_minimumSize > 0) {
+            if(newRight - newLeft < m_minimumSize)
+                return;
+        }
+        if(m_maximumSize > 0) {
+            if(newRight - newLeft > m_maximumSize)
+                return;
+        }
+        mLeft = newLeft;
+        mRight = newRight;
+        mBottom = newBottom;
+        mTop = newTop;
         // Now: Keep pointer at same position while zooming in and out:
         float newPosX = (event->position().x()/width())*(mRight - mLeft) + mLeft;
         float newPosY = (event->position().y()/height())*(mTop - mBottom) + mBottom;
@@ -924,8 +945,15 @@ void View::drawScalebar() {
     m_lineRenderer->postDraw();
 
     // Draw text
+    std::string message = roundToString(barWidth, decimals) + " μm";
+    if(barWidth >= 10000) {
+        message = roundToString(barWidth / 10000.0f, decimals) + " cm";
+    } else if(barWidth >= 1000) {
+        message = roundToString(barWidth / 1000.0f, decimals) + " mm";
+    }
+
     auto text = Text::create(
-            roundToString(barWidth, decimals) + " μm", //+ ": " + roundToString(physicalWidth*1000, 1) + " x " + roundToString(physicalHeight*1000, 1) + " micrometers",
+            message,
             Color::Black()
             );
     m_textRenderer->connect(text);
@@ -938,6 +966,14 @@ void View::drawScalebar() {
 
 void View::setScalebar(float enable) {
     m_showScalebar = enable;
+}
+
+void View::setMinSize(float size) {
+    m_minimumSize = size;
+}
+
+void View::setMaxSize(float size) {
+    m_maximumSize = size;
 }
 
 } // end namespace fast

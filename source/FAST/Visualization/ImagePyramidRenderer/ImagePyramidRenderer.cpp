@@ -147,20 +147,26 @@ int ImagePyramidRenderer::loadTileTexture(std::string tileID) {
     GLint compressedImageSize = 0;
     glGetTexLevelParameteriv(GL_TEXTURE_2D, 0, GL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compressedImageSize);
     glBindTexture(GL_TEXTURE_2D, 0);
-    GLsync uploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
-    glFlush();
+    //GLsync uploadFence = glFenceSync(GL_SYNC_GPU_COMMANDS_COMPLETE, 0);
+    //glFlush();
+    glFinish();
 
     bool isEmpty;
     {
         std::lock_guard<std::mutex> lock(m_tileQueueMutex);
         mTexturesToRender[tileID] = textureID;
-        m_textureFences[tileID] = uploadFence;
+        //m_textureFences[tileID] = uploadFence;
         isEmpty = m_tileQueue.empty();
     }
+    /*
     // If queue is empty, wait for sync to finish
     if(isEmpty) {
-        glClientWaitSync(uploadFence, 0, 1e9);
+        glWaitSync(uploadFence, 0, GL_TIMEOUT_IGNORED);
+        m_view->scheduleRedraw(true);
+    } else {
+        m_view->scheduleRedraw(false);
     }
+    */
     m_view->scheduleRedraw(false);
     return compressedImageSize;
 }
@@ -388,6 +394,7 @@ void ImagePyramidRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatr
                     textureID = mTexturesToRender[tileString];
                 }
 
+                /*
                 // Check whether texture is ready
                 {
                     std::lock_guard<std::mutex> lock(m_tileQueueMutex);
@@ -401,6 +408,7 @@ void ImagePyramidRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatr
                         }
                     }
                 }
+                 */
 
                 if(textureID == 0) // This tile was missing or something, just skip it
                     continue;

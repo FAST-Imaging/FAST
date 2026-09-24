@@ -63,6 +63,16 @@ class FAST_EXPORT  View : public QGLWidget, public ProcessObject, protected QOpe
          */
         void setScalebar(float enable);
         void scheduleRedraw(bool now = true);
+        /**
+         * @brief Set min size, i.e. max zoom
+         * @param size In millimeters
+         */
+        void setMinSize(float size);
+        /**
+         * @brief Set max size, i.e. min zoom
+         * @param size In millimeters
+         */
+         void setMaxSize(float size);
     Q_SIGNALS:
         void redraw();
     private:
@@ -114,6 +124,9 @@ class FAST_EXPORT  View : public QGLWidget, public ProcessObject, protected QOpe
         std::shared_ptr<LineRenderer> m_lineRenderer;
         bool m_showScalebar = false;
         void drawScalebar();
+
+        float m_minimumSize = -1.0f;
+        float m_maximumSize = -1.0f;
     protected:
         void getMinMaxFromBoundingBoxes(bool transform, Vector3f& min, Vector3f& max);
         void initializeGL();

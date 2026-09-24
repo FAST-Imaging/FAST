@@ -47,8 +47,6 @@ SegmentationLabelRenderer::SegmentationLabelRenderer(std::map<uint, std::string>
 void SegmentationLabelRenderer::execute() {
     {
         std::lock_guard<std::mutex> lock(mMutex);
-        if(m_disabled)
-            return;
         if(mStop) {
             return;
         }
@@ -64,7 +62,7 @@ void SegmentationLabelRenderer::execute() {
                 if(mHasRendered) {
                     mHasRendered = false;
                     mDataToRender[inputNr] = input;
-                    auto regionProps = RegionProperties::New();
+                    auto regionProps = RegionProperties::create(false);
                     regionProps->setInputData(input);
                     m_regions[inputNr] = regionProps->updateAndGetOutputData<RegionList>();
                 }

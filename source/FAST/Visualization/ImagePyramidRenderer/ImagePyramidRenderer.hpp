@@ -29,7 +29,7 @@ class FAST_EXPORT ImagePyramidRenderer : public Renderer {
              int viewHeight);
 
         std::unordered_map<std::string, uint> mTexturesToRender;
-        std::unordered_map<std::string, GLsync> m_textureFences;
+        //std::unordered_map<std::string, GLsync> m_textureFences;
         std::unordered_map<uint, std::shared_ptr<ImagePyramid>> mImageUsed;
         std::unordered_map<std::string, uint> mVAO;
         std::unordered_map<std::string, uint> mVBO;

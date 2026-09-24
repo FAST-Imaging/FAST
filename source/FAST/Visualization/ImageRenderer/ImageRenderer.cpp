@@ -58,6 +58,7 @@ void ImageRendererBase::deleteAllTextures() {
 
 void ImageRenderer::setIntensityLevel(float level) {
     mLevel = level;
+    setModified(true);
 }
 
 float ImageRenderer::getIntensityLevel() {
@@ -68,6 +69,7 @@ void ImageRenderer::setIntensityWindow(float window) {
     if (window <= 0)
         throw Exception("Intensity window has to be above 0.");
     mWindow = window;
+    setModified(true);
 }
 
 float ImageRenderer::getIntensityWindow() {
@@ -76,7 +78,7 @@ float ImageRenderer::getIntensityWindow() {
 
 void ImageRenderer::loadAttributes() {
     mWindow = getFloatAttribute("window");
-    mLevel = (getFloatAttribute("level"));
+    mLevel = getFloatAttribute("level");
 }
 
 void ImageRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatrix, float zNear, float zFar, bool mode2D,
