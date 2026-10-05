@@ -12,6 +12,7 @@ on:
 env:
   BUILD_TYPE: Release
   MACOSX_DEPLOYMENT_TARGET: 11.0
+  PYTHON_CONFIGURE_OPTS: --without-ensurepip
 
 jobs:
   build:
