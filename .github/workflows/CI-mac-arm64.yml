@@ -12,7 +12,7 @@ on:
 env:
   BUILD_TYPE: Release
   MACOSX_DEPLOYMENT_TARGET: 11.0
-  PYTHON_CONFIGURE_OPTS: --without-ensurepip
+
 
 jobs:
   build:
@@ -28,7 +28,7 @@ jobs:
       env:
         ACTIONS_ALLOW_UNSECURE_COMMANDS: true
         MACOSX_DEPLOYMENT_TARGET: 11.0
-        PYTHON_CONFIGURE_OPTS: "--enable-framework"
+        PYTHON_CONFIGURE_OPTS: "--enable-framework --without-ensurepip"
         CFLAGS: "-Wno-implicit-function-declaration"
         LDFLAGS: "-L/usr/local/opt/zlib/lib -framework Foundation"
         CPPFLAGS: "-I/usr/local/opt/zlib/include"
