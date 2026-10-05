@@ -39,7 +39,7 @@ jobs:
         
     - name: Install pip dependencies
       run: |
-        pip3 install --upgrade pip
+        pip3 install --upgrade --force-reinstall pip
         pip3 install twine wheel
 
     - name: Debug
