@@ -23,6 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         brew install pcre
+        brew reinstall openssl
         
     - name: Setup pyenv
       env:
