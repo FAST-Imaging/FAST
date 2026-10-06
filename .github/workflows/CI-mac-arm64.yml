@@ -22,14 +22,14 @@ jobs:
     
     - name: Install dependencies
       run: |
-        brew install pcre
-        brew reinstall openssl@1.1
+        brew install pcre openssl@3
         
     - name: Setup pyenv
       env:
         ACTIONS_ALLOW_UNSECURE_COMMANDS: true
         MACOSX_DEPLOYMENT_TARGET: 11.0
         PYTHON_CONFIGURE_OPTS: "--enable-framework"
+        PYTHON_BUILD_HOMEBREW_OPENSSL_FORMULA: "openssl@3"
         CFLAGS: "-Wno-implicit-function-declaration"
         LDFLAGS: "-L/usr/local/opt/zlib/lib -framework Foundation"
         CPPFLAGS: "-I/usr/local/opt/zlib/include"
