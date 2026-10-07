@@ -149,7 +149,7 @@ jobs:
         fi
 
     - name: Upload Debian package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Debian package
         path: ${{github.workspace}}/build/fast_*.deb
@@ -157,7 +157,7 @@ jobs:
         archive: false
 
     - name: Upload archive package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Archive package (tar.xz)
         path: ${{github.workspace}}/build/fast_*.tar.xz
@@ -165,7 +165,7 @@ jobs:
         archive: false
 
     - name: Upload Python wheel
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Python wheel
         path: ${{github.workspace}}/build/pyfast-*.whl
