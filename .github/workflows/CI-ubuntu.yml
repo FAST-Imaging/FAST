@@ -154,6 +154,7 @@ jobs:
         name: Debian package
         path: ${{github.workspace}}/build/fast_*.deb
         if-no-files-found: error
+        archive: false
 
     - name: Upload archive package
       uses: actions/upload-artifact@v4
@@ -161,6 +162,7 @@ jobs:
         name: Archive package (tar.xz)
         path: ${{github.workspace}}/build/fast_*.tar.xz
         if-no-files-found: error
+        archive: false
 
     - name: Upload Python wheel
       uses: actions/upload-artifact@v4
@@ -168,6 +170,7 @@ jobs:
         name: Python wheel
         path: ${{github.workspace}}/build/pyfast-*.whl
         if-no-files-found: error
+        archive: false
 
     - name: Upload Debian package to release
       if: ${{ github.event_name == 'release' }}
