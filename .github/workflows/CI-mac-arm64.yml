@@ -81,18 +81,20 @@ jobs:
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target package -j 4
 
     - name: Upload archive package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Archive package (tar.xz)
         path: ${{github.workspace}}/build/fast_*.tar.xz
         if-no-files-found: error
+        archive: false
 
     - name: Upload Python wheel
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Python wheel
         path: ${{github.workspace}}/build/python/dist/pyfast-*.whl
         if-no-files-found: error
+        archive: false
 
     - name: Upload archive package to release
       if: ${{ github.event_name == 'release' }}
@@ -141,9 +143,10 @@ jobs:
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
       - name: Download wheel artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
-          name: 'Python wheel'
+          pattern: "*.whl"
+          merge-multiple: true
           path: ${{github.workspace}}/download/
       - name: Create virtual environment and install wheel
         run: |

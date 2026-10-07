@@ -170,25 +170,28 @@ jobs:
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}} --target package -j 4
 
     - name: Upload Windows installer
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Window installer
         path: ${{github.workspace}}/build/fast_*.exe
         if-no-files-found: error
+        archive: false
 
     - name: Upload archive package
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Archive package (zip)
         path: ${{github.workspace}}/build/fast_*.zip
         if-no-files-found: error
+        archive: false
 
     - name: Upload Python wheel
-      uses: actions/upload-artifact@v4
+      uses: actions/upload-artifact@v7
       with:
         name: Python wheel
         path: ${{github.workspace}}/build/python/dist/pyfast-*.whl
         if-no-files-found: error
+        archive: false
 
     - name: Upload Windows installer to release
       if: ${{ github.event_name == 'release' }}
@@ -236,9 +239,10 @@ jobs:
     runs-on: windows-2022
     steps:
       - name: Download wheel artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
-          name: 'Python wheel'
+          pattern: "*.whl"
+          merge-multiple: true
           path: ${{github.workspace}}/download/
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v5
@@ -273,9 +277,10 @@ jobs:
         with:
           python-version: 3.12
       - name: Download wheel artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
-          name: 'Python wheel'
+          pattern: "*.whl"
+          merge-multiple: true
           path: ${{github.workspace}}/download/
       - name: Display Python version
         run: python -c "import sys; print(sys.version)"
