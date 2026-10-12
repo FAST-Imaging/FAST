@@ -11,7 +11,6 @@
 #elif defined(__APPLE__) || defined(__MACOSX)
 #include <OpenGL/OpenGL.h>
 #else
-#include <GL/glx.h>
 #endif
 
 namespace fast {
@@ -180,17 +179,7 @@ void ImagePyramidRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatr
     if(!m_bufferThread && m_view != nullptr) {
         // Create thread to load patches
         // Create a GL context for the thread which is sharing with the context of the view
-        auto context = new QOpenGLContext(m_view);
-        context->setShareContext(m_view->context());
-        context->create();
 
-        if(!context->isValid())
-            throw Exception("The custom Qt GL context is invalid!");
-
-        if(!context->areSharing(context, m_view->context()))
-            throw Exception("The custom Qt GL context is not sharing!");
-
-        context->makeCurrent(Window::getQSurface());
 #ifdef WIN32
         auto nativeContextHandle = wglGetCurrentContext();
         context->doneCurrent();
@@ -207,14 +196,16 @@ void ImagePyramidRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatr
         m_bufferThread = std::make_unique<std::thread>([this, nativeContextHandle]() {
             CGLSetCurrentContext(nativeContextHandle);
 #else
-        auto nativeContextHandle = glXGetCurrentContext();
-        auto drawable = glXGetCurrentDrawable();
-        auto display = glXGetCurrentDisplay();
-        context->doneCurrent();
-        m_view->context()->makeCurrent(Window::getQSurface());
 
-        m_bufferThread = std::make_unique<std::thread>([this, display, drawable, nativeContextHandle]() {
-            glXMakeCurrent(display, drawable, nativeContextHandle);
+        m_bufferThread = std::make_unique<std::thread>([this]() {
+            auto context = new QOpenGLContext();
+            context->setShareContext(m_view->context());
+            context->create();
+            if(!context->isValid())
+                throw Exception("The custom Qt GL context is invalid!");
+            if(!QOpenGLContext::areSharing(context, m_view->context()))
+                throw Exception("The custom Qt GL context is not sharing!");
+            context->makeCurrent(Window::getQSurface());
 #endif
             uint64_t memoryUsage = 0;
             while(true) {
