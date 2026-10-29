@@ -18,7 +18,7 @@ void MultiViewWindow::removeAllRenderers() {
         view->removeAllRenderers();
     }
 }
-MultiViewWindow::MultiViewWindow(int viewCount, Color bgcolor, int width, int height, bool verticalMode) {
+MultiViewWindow::MultiViewWindow(int viewCount, Color bgcolor, int width, int height, bool verticalMode, std::vector<std::string> labels) {
     setNrOfViews(viewCount);
     setBackgroundColor(bgcolor);
     if(width > 0)
@@ -27,6 +27,7 @@ MultiViewWindow::MultiViewWindow(int viewCount, Color bgcolor, int width, int he
         setHeight(height);
     if(verticalMode)
         setVerticalMode();
+    m_labels = labels;
 }
 
 void MultiViewWindow::setNrOfViews(int viewCount) {
@@ -52,21 +53,27 @@ MultiViewWindow::~MultiViewWindow() {
 void MultiViewWindow::createLayout() {
     // Add new layout
     std::vector<View*> views = getViews();
+    QBoxLayout* mainLayout;
     if(mVerticalMode) {
-        auto mainLayout = new QVBoxLayout;
-        for(View* view : views) {
-            mainLayout->addWidget(view);
-        }
-        mainLayout->setContentsMargins(0, 0, 0, 0);
-        setCenterLayout(mainLayout);
+        mainLayout = new QVBoxLayout;
     } else {
-        auto mainLayout = new QHBoxLayout;
-        for(View* view : views) {
-            mainLayout->addWidget(view);
-        }
-        mainLayout->setContentsMargins(0, 0, 0, 0);
-        setCenterLayout(mainLayout);
+        mainLayout = new QHBoxLayout;
     }
+
+    for(int i = 0; i < views.size(); ++i) {
+        auto view = views[i];
+        if(m_labels.empty()) {
+            mainLayout->addWidget(view);
+        } else {
+            auto viewLayout = new QVBoxLayout();
+            auto label = new QLabel(QString::fromStdString("<h1><center>" + m_labels[i] + "</center></h1>"));
+            viewLayout->addWidget(label);
+            viewLayout->addWidget(view);
+            mainLayout->addLayout(viewLayout);
+        }
+    }
+    mainLayout->setContentsMargins(0, 0, 0, 0);
+    setCenterLayout(mainLayout);
 }
 
 void MultiViewWindow::addView(View* view) {
@@ -93,6 +100,21 @@ MultiViewWindow::connect(int viewNr, std::vector<std::shared_ptr<Renderer>> rend
 void MultiViewWindow::setBackgroundColor(Color color) {
     for(auto view : getViews())
         view->setBackgroundColor(color);
+}
+
+std::shared_ptr<MultiViewWindow> MultiViewWindow::connect(QWidget *widget, WidgetPosition position) {
+    return std::dynamic_pointer_cast<MultiViewWindow>(Window::connect(widget, position));
+}
+
+std::shared_ptr<MultiViewWindow> MultiViewWindow::connect(std::vector<QWidget *> widgets, WidgetPosition position) {
+    return std::dynamic_pointer_cast<MultiViewWindow>(Window::connect(widgets, position));
+}
+
+MultiViewWindow2D::MultiViewWindow2D(int viewCount, Color bgcolor, int width, int height, bool verticalMode, std::vector<std::string> labels) : MultiViewWindow(viewCount, bgcolor, width, height, verticalMode, labels) {
+    set2DMode();
+}
+MultiViewWindow3D::MultiViewWindow3D(int viewCount, Color bgcolor, int width, int height, bool verticalMode, std::vector<std::string> labels) : MultiViewWindow(viewCount, bgcolor, width, height, verticalMode, labels) {
+    set3DMode();
 }
 
 } // end namespace fast
