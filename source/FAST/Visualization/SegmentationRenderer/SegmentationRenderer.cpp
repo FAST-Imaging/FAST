@@ -187,22 +187,6 @@ void SegmentationRenderer::drawPyramid(std::shared_ptr<SpatialDataObject> dataTo
         if(!m_bufferThread && m_view != nullptr) {
             // Create thread to load patches
             // Create a GL context for the thread which is sharing with the context of the view
-#ifdef WIN32
-            auto nativeContextHandle = wglGetCurrentContext();
-            context->doneCurrent();
-            m_view->context()->makeCurrent(Window::getQSurface());
-            auto dc = wglGetCurrentDC();
-
-            m_bufferThread = std::make_unique<std::thread>([this, dc, nativeContextHandle]() {
-                wglMakeCurrent(dc, nativeContextHandle);
-#elif defined(__APPLE__)
-            auto nativeContextHandle = CGLGetCurrentContext();
-            context->doneCurrent();
-            m_view->context()->makeCurrent(Window::getQSurface());
-
-            m_bufferThread = std::make_unique<std::thread>([this, nativeContextHandle]() {
-                CGLSetCurrentContext(nativeContextHandle);
-#else
             m_bufferThread = std::make_unique<std::thread>([this]() {
                 auto context = new QOpenGLContext();
                 context->setShareContext(m_view->context());
@@ -212,7 +196,6 @@ void SegmentationRenderer::drawPyramid(std::shared_ptr<SpatialDataObject> dataTo
                 if(!QOpenGLContext::areSharing(context, m_view->context()))
                     throw Exception("The custom Qt GL context is not sharing!");
                 context->makeCurrent(Window::getQSurface());
-#endif
 
                 m_memoryUsage = 0;
                 while(true) {
