@@ -20,7 +20,7 @@ class FAST_EXPORT MultiViewWindow : public Window {
                          int, width, = 0,
                          int, height, = 0,
                          bool, verticalMode, = false,
-                         std::vector<std::string>, labels, = {}
+                         std::vector<std::string>, labels, = std::vector<std::string>()
         )
         void addView(View* view);
         void addRenderer(int viewIndex, Renderer::pointer renderer);
@@ -55,7 +55,7 @@ class FAST_EXPORT MultiViewWindow2D : public MultiViewWindow {
                      int, width, = 0,
                      int, height, = 0,
                      bool, verticalMode, = false,
-                     std::vector<std::string>, labels, = {}
+                     std::vector<std::string>, labels, = std::vector<std::string>()
         )
 };
 
@@ -72,7 +72,7 @@ class FAST_EXPORT MultiViewWindow3D : public MultiViewWindow {
                          int, width, = 0,
                          int, height, = 0,
                          bool, verticalMode, = false,
-                         std::vector<std::string>, labels, = {}
+                         std::vector<std::string>, labels, = std::vector<std::string>()
         )
 };
 
