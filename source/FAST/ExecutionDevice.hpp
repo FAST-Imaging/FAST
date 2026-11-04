@@ -126,9 +126,11 @@ class FAST_EXPORT  OpenCLDevice : public ExecutionDevice {
         RuntimeMeasurementsManager::pointer runtimeManager;
 
 };
+#ifndef SWIG
 cl_context_properties* createInteropContextProperties(
             cl_platform_id platform,
             cl_context_properties OpenGLContext,
             cl_context_properties display, std::string type = "");
+#endif
 } // end namespace fast
 
