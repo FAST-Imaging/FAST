@@ -36,6 +36,9 @@ else()
     )
 endif()
 
+find_package(OpenGL REQUIRED)
+list(APPEND FAST_SYSTEM_LIBRARIES ${OPENGL_LIBRARIES})
+
 ## Qt
 if(FAST_MODULE_Visualization)
     if(FAST_BUILD_QT5)
