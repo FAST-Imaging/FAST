@@ -11,7 +11,6 @@
 #include <windows.h>
 
 #else
-#include <GL/glx.h>
 #endif
 #endif
 

@@ -18,6 +18,10 @@ public:
     static std::string getLibraryPath();
     static std::string getQtPluginsPath();
     static bool getVisualization();
+    static bool hasGUI();
+    static void disableGUI();
+    static bool hasOpenGLRendering();
+    static void disableOpenGLRendering();
     static void setTestDataPath(std::string path);
     static void setKernelSourcePath(std::string path);
     static void setKernelBinaryPath(std::string path);

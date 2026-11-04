@@ -4,6 +4,8 @@
 #include <mutex>
 #include <fstream>
 #include "FAST/Config.hpp"
+#include <QGuiApplication>
+#include <FAST/Visualization/Window.hpp>
 
 #if defined(__APPLE__) || defined(__MACOSX)
 #include <CL/cl_gl.h>
@@ -11,8 +13,11 @@
 #else
 #if _WIN32
 #else
-#include <GL/glx.h>
 #include <CL/cl_gl.h>
+#include <QtPlatformHeaders/QGLXNativeContext>
+typedef void* EGLContext;
+typedef void* EGLDisplay;
+#include <QtPlatformHeaders/QEGLNativeContext>
 #endif
 #endif
 
@@ -28,17 +33,17 @@
 
 namespace fast {
 
-inline cl_context_properties* createInteropContextProperties(
-        const cl::Platform &platform,
+cl_context_properties* createInteropContextProperties(
+        cl_platform_id platform,
         cl_context_properties OpenGLContext,
-        cl_context_properties display) {
+        cl_context_properties display, std::string type) {
 #if defined(__APPLE__) || defined(__MACOSX)
     // Apple (untested)
     // TODO: create GL context for Apple
-CGLSetCurrentContext((CGLContextObj)OpenGLContext);
-CGLShareGroupObj shareGroup = CGLGetShareGroup((CGLContextObj)OpenGLContext);
-if(shareGroup == NULL)
-throw Exception("Not able to get sharegroup");
+    CGLSetCurrentContext((CGLContextObj)OpenGLContext);
+    CGLShareGroupObj shareGroup = CGLGetShareGroup((CGLContextObj)OpenGLContext);
+    if(shareGroup == NULL)
+        throw Exception("Not able to get sharegroup");
     cl_context_properties * cps = new cl_context_properties[3];
     cps[0] = CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
     cps[1] = (cl_context_properties)shareGroup;
@@ -53,17 +58,29 @@ throw Exception("Not able to get sharegroup");
     cps[2] = CL_WGL_HDC_KHR;
     cps[3] = display;
     cps[4] = CL_CONTEXT_PLATFORM;
-    cps[5] = (cl_context_properties) (platform)();
+    cps[5] = (cl_context_properties)platform;
 	cps[6] = 0;
 #else
     cl_context_properties * cps = new cl_context_properties[7];
-    cps[0] = CL_GL_CONTEXT_KHR;
-    cps[1] = OpenGLContext;
-    cps[2] = CL_GLX_DISPLAY_KHR;
-    cps[3] = display;
-    cps[4] = CL_CONTEXT_PLATFORM;
-    cps[5] = (cl_context_properties) (platform)();
-	cps[6] = 0;
+    if(type == "GLX") {
+        cps[0] = CL_GL_CONTEXT_KHR;
+        cps[1] = OpenGLContext;
+        cps[2] = CL_GLX_DISPLAY_KHR;
+        cps[3] = display;
+        cps[4] = CL_CONTEXT_PLATFORM;
+        cps[5] = (cl_context_properties)platform;
+        cps[6] = 0;
+    } else if(type == "EGL") {
+        cps[0] = CL_GL_CONTEXT_KHR;
+        cps[1] = OpenGLContext;
+        cps[2] = CL_EGL_DISPLAY_KHR;
+        cps[3] = display;
+        cps[4] = CL_CONTEXT_PLATFORM;
+        cps[5] = (cl_context_properties)platform;
+        cps[6] = 0;
+    } else {
+        throw Exception("Unknown GL interop type");
+    }
 #endif
 #endif
     return cps;
@@ -209,10 +226,9 @@ std::string readFile(std::string filename) {
     return retval;
 }
 
-OpenCLDevice::OpenCLDevice(std::vector<cl::Device> devices, unsigned long* OpenGLContext) {
+OpenCLDevice::OpenCLDevice(std::vector<cl::Device> devices, QOpenGLContext* OpenGLContext) {
     runtimeManager = RuntimeMeasurementsManager::New();
     mIsHost = false;
-    mGLContext = OpenGLContext;
     profilingEnabled = false;
 	if(profilingEnabled)
 		runtimeManager->enable();
@@ -227,29 +243,45 @@ OpenCLDevice::OpenCLDevice(std::vector<cl::Device> devices, unsigned long* OpenG
     // TODO: must check that a OpenGL context and display is available
     // TODO: Use current context and display, or take this as input??
     cl_context_properties * cps;
-    if(OpenGLContext != NULL) {
+    if(OpenGLContext != nullptr) {
+        m_hasOpenGLInterop = true;
 #if defined(__APPLE__) || defined(__MACOSX)
         cps = createInteropContextProperties(
-                this->platform,
-                (cl_context_properties)OpenGLContext,
+                this->platform(),
+                (cl_context_properties)CGLGetCurrentContext(),
                 NULL
         );
 #else
 #ifdef _WIN32
         cps = createInteropContextProperties(
-                this->platform,
-                (cl_context_properties)OpenGLContext,
+                this->platform(),
+                (cl_context_properties)wglGetCurrentContext(),
                 (cl_context_properties)wglGetCurrentDC()
         );
 #else
-        reportInfo() << "Created OpenCL context with glX context " << OpenGLContext << reportEnd();
-        Display * display = XOpenDisplay(0);
-        reportInfo() << "and X display " << display << reportEnd();
-        cps = createInteropContextProperties(
-                this->platform,
-                (cl_context_properties)OpenGLContext,
-                (cl_context_properties)display
-        );
+        auto handle = Window::getMainGLContext()->nativeHandle();
+        if(handle.isNull()) {
+            throw Exception("Unable to get native handle from GL context");
+        } else if(handle.canConvert<QGLXNativeContext>()) {
+            auto glxContext = handle.value<QGLXNativeContext>();
+            auto display = glXGetCurrentDisplay(); // Display is missing from QGLXNativeContext
+            cps = createInteropContextProperties(
+                    this->platform(),
+                    (cl_context_properties)glxContext.context(),
+                    (cl_context_properties)display,
+                    "GLX"
+                    );
+        } else if(handle.canConvert<QEGLNativeContext>()){
+            auto eglContext = handle.value<QEGLNativeContext>();
+            cps = createInteropContextProperties(
+                    this->platform(),
+                    (cl_context_properties)eglContext.context(),
+                    (cl_context_properties)eglContext.display(),
+                    "EGL"
+                    );
+        } else {
+            throw Exception("Unknown native GL context");
+        }
 #endif
 #endif
     } else {
@@ -258,7 +290,11 @@ OpenCLDevice::OpenCLDevice(std::vector<cl::Device> devices, unsigned long* OpenG
         cps[1] = (cl_context_properties)(platform)();
         cps[2] = 0;
     }
-    this->context = cl::Context(devices,cps);
+    try {
+        this->context = cl::Context(devices,cps);
+    } catch(...) {
+        throw Exception("Unable to create OpenCL context!");
+    }
     delete[] cps;
 
     // Create a command queue for each device
@@ -500,7 +536,7 @@ bool OpenCLDevice::hasProgram(std::string name) {
 }
 
 bool OpenCLDevice::isOpenGLInteropSupported() {
-    return mGLContext != nullptr;
+    return m_hasOpenGLInterop;
 }
 
 } // end namespace fast

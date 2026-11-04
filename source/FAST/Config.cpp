@@ -27,13 +27,6 @@
 #include <dlfcn.h>
 #endif
 
-// For XOpenDisplay
-#ifndef WIN32
-#ifndef __APPLE__
-#include <X11/Xlib.h>
-#endif
-#endif
-
 namespace fast {
 
 		namespace {
@@ -50,6 +43,13 @@ namespace fast {
 			std::string mQtPluginsPath;
 			bool m_visualization = true;
 			bool m_terminateHandlerDisabled = false;
+#ifdef FAST_MODULE_VISUALIZATION
+			bool m_GUI = true;
+			bool m_OpenGL = true;
+#else
+            bool m_GUI = false;
+            bool m_OpenGL = false;
+#endif
 		}
 
 		static void copyPipelineFilesRecursivly(std::string pipelineSourcePath, std::string pipelineDestinationPath) {
@@ -164,6 +164,13 @@ namespace fast {
 			} catch(Exception & e) {
 				Reporter::warning() << e.what() << Reporter::end();
 			}
+
+#ifdef FAST_MODULE_VISUALIZATION
+			m_visualization = true;
+#else
+            Reporter::warning() << "Rendering is disabled in this build." << Reporter::end();
+			m_visualization = false;
+#endif
 
 			// Read and parse configuration file
 			// It should reside in the build folder when compiling, and in the root folder when using release
@@ -332,17 +339,7 @@ namespace fast {
 		}
 
 		bool Config::getVisualization() {
-#ifdef FAST_MODULE_VISUALIZATION
-		    m_visualization = true;
-#if defined(WIN32) || defined(__APPLE__)
-#else
-            if(XOpenDisplay(nullptr) == nullptr) {
-                m_visualization = false;
-            }
-#endif
-#else
-            m_visualization = false;
-#endif
+		    loadConfiguration();
             return m_visualization;
 		}
 
@@ -353,6 +350,22 @@ namespace fast {
         bool Config::getTerminateHandlerDisabled() {
 		    return m_terminateHandlerDisabled;
 		}
+
+        bool Config::hasGUI() {
+            return m_GUI;
+        }
+
+        void Config::disableGUI() {
+		    m_GUI = false;
+        }
+
+        bool Config::hasOpenGLRendering() {
+            return m_OpenGL;
+        }
+
+        void Config::disableOpenGLRendering() {
+            m_OpenGL = false;
+        }
 
     void downloadTestDataIfNotExists(std::string destination, bool force) {
 #ifdef FAST_MODULE_VISUALIZATION

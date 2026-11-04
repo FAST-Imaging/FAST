@@ -36,18 +36,6 @@ else()
     )
 endif()
 
-## OpenGL
-find_package(OpenGL REQUIRED)
-list(APPEND FAST_SYSTEM_LIBRARIES ${OPENGL_LIBRARIES})
-list(APPEND FAST_INCLUDE_DIRS ${OPENGL_INCLUDE_DIR})
-# If OS is Linux, also need X
-if(CMAKE_SYSTEM_NAME STREQUAL Linux)
-    find_package(X11 REQUIRED)
-    list(APPEND FAST_INCLUDE_DIRS ${X11_INCLUDE_DIR})
-    list(APPEND FAST_SYSTEM_LIBRARIES ${X11_LIBRARIES})
-    list(APPEND FAST_SYSTEM_LIBRARIES pthread)
-endif()
-
 ## Qt
 if(FAST_MODULE_Visualization)
     if(FAST_BUILD_QT5)

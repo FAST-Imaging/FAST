@@ -16,7 +16,10 @@
 #include <QOffscreenSurface>
 #ifndef WIN32
 #ifndef __APPLE__
-#include <X11/Xlib.h>
+typedef void* EGLContext;
+typedef void* EGLDisplay;
+#include <QtPlatformHeaders/QEGLNativeContext>
+#include <QtPlatformHeaders/QGLXNativeContext>
 #endif
 #endif
 
@@ -43,17 +46,17 @@ public:
         } catch(Exception &e) {
             msg = "FAST exception caught in Qt event handler " + QString(e.what());
             Reporter::error() << msg.toStdString() << Reporter::end();
-			if(!Config::getVisualization())
+			if(!Config::hasGUI())
 				throw e;
         } catch(cl::Error &e) {
 			msg = "OpenCL exception caught in Qt event handler " + QString(e.what()) + "(" + QString(getCLErrorString(e.err()).c_str()) + ")";
             Reporter::error() << msg.toStdString() << Reporter::end();
-			if(!Config::getVisualization())
+			if(!Config::hasGUI())
 				throw e;
         } catch(std::exception &e) {
             msg = "Standard (std) exception caught in Qt event handler " + QString(e.what());
             Reporter::error() << msg.toStdString() << Reporter::end();
-			if(!Config::getVisualization())
+			if(!Config::hasGUI())
 				throw e;
         }
 		int ret = QMessageBox::critical(nullptr, "Error", msg);
@@ -185,29 +188,38 @@ void Window::initializeQtApp() {
 #if defined(WIN32) || defined(__APPLE__)
         QApplication* app = new FASTApplication(*argc,NULL);
 #else
-        if(XOpenDisplay(nullptr) == nullptr) {
-            Reporter::warning() << "Unable to open X display. Rendering is disabled." << Reporter::end();
-            // Give the -platform offscreen option to Qt. This will stop Qt for trying to initiating X and open a display
+        auto Xdisplay = std::getenv("DISPLAY");
+        if(Xdisplay == nullptr || std::string(Xdisplay).empty()) {
+            Config::disableGUI();
+            Config::disableOpenGLRendering();
+            Reporter::info() << "No X display was set. GUI disabled." << Reporter::end();
             *argc = 3;
             char const* argv[3] = {"fast", "-platform", "offscreen"};
             QApplication *app = new FASTApplication(*argc, (char**)&argv);
             Config::setVisualization(false);
         } else {
-            QPluginLoader loader((Config::getQtPluginsPath() + "/platforms/libqxcb.so").c_str());
-            if(!loader.load()) {
-                Reporter::warning() << "Found X display, but failed to load Qt xcb plugin." << Reporter::end();
-                Reporter::warning() << "GUI is disabled, but offscreen rendering using RenderToImage is enabled." << Reporter::end();
-                Reporter::warning() << "Error message: " << loader.errorString().toStdString() << " Set environment variable QT_DEBUG_PLUGINS=1 for more info." << Reporter::end();
-                // Give the -platform offscreen option to Qt. This will stop Qt for trying to initiating X and open a display
+            if(XOpenDisplay(nullptr) == nullptr) {
+                Config::disableGUI();
+                Config::disableOpenGLRendering();
+                Reporter::warning() << "Unable to open X display: " << Xdisplay << ". GUI disabled." << Reporter::end();
                 *argc = 3;
                 char const* argv[3] = {"fast", "-platform", "offscreen"};
                 QApplication *app = new FASTApplication(*argc, (char**)&argv);
             } else {
-                QApplication *app = new FASTApplication(*argc, NULL);
+                QPluginLoader loader((Config::getQtPluginsPath() + "/platforms/libqxcb.so").c_str());
+                if(!loader.load()) {
+                    Config::disableGUI();
+                    Reporter::warning() << "Found X display, but failed to load Qt xcb plugin. GUI disabled." << Reporter::end();
+                    Reporter::warning() << "Error message: " << loader.errorString().toStdString() << " Set environment variable QT_DEBUG_PLUGINS=1 for more info." << Reporter::end();
+                    *argc = 3;
+                    char const* argv[3] = {"fast", "-platform", "offscreen"};
+                    QApplication *app = new FASTApplication(*argc, (char**)&argv);
+                } else {
+                    QApplication *app = new FASTApplication(*argc, NULL);
+                }
             }
         }
 #endif
-
 
         // Set default window icon
         QApplication::setWindowIcon(QIcon((Config::getDocumentationPath() + "images/fast_icon.png").c_str()));
@@ -227,8 +239,8 @@ void Window::initializeQtApp() {
         Reporter::info() << "QApp already exists.." << Reporter::end();
     }
 
-     // Create computation GL context, if it doesn't exist
-    if(mMainGLContext == nullptr && Config::getVisualization()) {
+    // Create computation GL context, if it doesn't exist
+    if(mMainGLContext == nullptr && Config::hasOpenGLRendering()) {
         Reporter::info() << "Creating new GL context for computation thread" << Reporter::end();
 
         // Create GL context to be shared with the CL contexts
@@ -236,15 +248,27 @@ void Window::initializeQtApp() {
         m_offscreenSurface->create();
         if(!m_offscreenSurface->isValid())
             throw Exception("QOffscreenSurface was invalid");
-        mMainGLContext = new QOpenGLContext(); // by including widget here the context becomes valid
+
+        mMainGLContext = new QOpenGLContext();
         mMainGLContext->setShareContext(QOpenGLContext::globalShareContext());
         mMainGLContext->create();
-        mSecondaryGLContext = new QOpenGLContext(); // by including widget here the context becomes valid
+        if(!mMainGLContext->isValid()) {
+            throw Exception("Main Qt GL context is invalid!");
+        }
+#if defined(WIN32) || defined(__APPLE__)
+#else
+        // Check what GL system is being used in Linux
+        if(mMainGLContext->nativeHandle().canConvert<QGLXNativeContext>()) {
+            Reporter::info() << "A GLX OpenGL context was created." << Reporter::end();
+        } else if(mMainGLContext->nativeHandle().canConvert<QEGLNativeContext>()) {
+            Reporter::info() << "An EGL OpenGL context was created." << Reporter::end();
+        } else {
+            Reporter::info() << "An UNKNOWN OpenGL context was created." << Reporter::end();
+        }
+#endif
+        mSecondaryGLContext = new QOpenGLContext();
         mSecondaryGLContext->setShareContext(mMainGLContext);
         mSecondaryGLContext->create();
-        if(!mMainGLContext->isValid()) {
-            throw Exception("Qt GL context is invalid!");
-        }
         if(!mSecondaryGLContext->isValid()) {
             throw Exception("Secondary Qt GL context is invalid!");
         }
@@ -375,7 +399,7 @@ void Window::setTimeout(unsigned int milliseconds) {
 
 QOpenGLContext* Window::getMainGLContext() {
     if(mMainGLContext == nullptr) {
-        if(!Config::getVisualization())
+        if(!Config::hasOpenGLRendering())
             throw Exception("Rendering in FAST was disabled, unable to continue.\nIf you want to render or use a GUI with FAST on a remote server read the documentation:\nhttps://fast-imaging.github.io/fast-remote-server.html");
         initializeQtApp();
     }
@@ -385,7 +409,7 @@ QOpenGLContext* Window::getMainGLContext() {
 
 QOpenGLContext* Window::getSecondaryGLContext() {
     if(mSecondaryGLContext == nullptr) {
-        if(!Config::getVisualization())
+        if(!Config::hasOpenGLRendering())
             throw Exception("Rendering in FAST was disabled, unable to continue.\nIf you want to render or use a GUI with FAST on a remote server read the documentation:\nhttps://fast-imaging.github.io/fast-remote-server.html");
         initializeQtApp();
     }
@@ -536,6 +560,15 @@ void Window::setCenterLayout(QLayout *layout) {
     m_mainVLayout->insertLayout(1, layout);
 }
 
+QSurface *Window::getQSurface() {
+    if(mMainGLContext == nullptr) {
+        if(!Config::hasOpenGLRendering())
+            throw Exception("Rendering in FAST was disabled, unable to continue.\nIf you want to render or use a GUI with FAST on a remote server read the documentation:\nhttps://fast-imaging.github.io/fast-remote-server.html");
+        initializeQtApp();
+    }
+    return (QSurface*)m_offscreenSurface;
+}
+
 void Window::setStyleSheet(const std::string& stylesheet) {
     mWidget->setStyleSheet(stylesheet.c_str());
 }
@@ -678,15 +711,6 @@ void Window::timerCallback(TimerCallbackClass* callback, int milliseconds) {
         callback->handle();
     });
     timer->start();
-}
-
-QSurface *Window::getQSurface() {
-    if(mMainGLContext == nullptr) {
-        if(!Config::getVisualization())
-            throw Exception("Visualization in FAST was disabled, unable to continue.\nIf you want to run FAST with visualization on a remote server, see the wiki page\nhttps://github.com/smistad/FAST/wiki/Running-FAST-on-a-remote-server");
-        initializeQtApp();
-    }
-    return (QSurface*)m_offscreenSurface;
 }
 
 } // end namespace fast

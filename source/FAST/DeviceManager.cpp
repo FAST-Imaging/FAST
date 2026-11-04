@@ -15,8 +15,11 @@
 #include <GL/gl.h>
 #include <CL/cl_gl.h>
 #else
-#include <GL/glx.h>
 #include <CL/cl_gl.h>
+#include <QtPlatformHeaders/QGLXNativeContext>
+typedef void* EGLContext;
+typedef void* EGLDisplay;
+#include <QtPlatformHeaders/QEGLNativeContext>
 #endif
 #endif
 
@@ -24,47 +27,6 @@ namespace fast {
 
 DeviceManager* DeviceManager::mInstance = nullptr;
 DevicePlatform DeviceManager::m_devicePlatform = DEVICE_PLATFORM_ANY;
-
-inline cl_context_properties* createInteropContextProperties(
-        const cl_platform_id &platform,
-        cl_context_properties OpenGLContext,
-        cl_context_properties display) {
-#if defined(__APPLE__) || defined(__MACOSX)
-    // Apple (untested)
-    // TODO: create GL context for Apple
-CGLSetCurrentContext((CGLContextObj)OpenGLContext);
-CGLShareGroupObj shareGroup = CGLGetShareGroup((CGLContextObj)OpenGLContext);
-if(shareGroup == NULL)
-throw Exception("Not able to get sharegroup");
-    cl_context_properties * cps = new cl_context_properties[3];
-    cps[0] = CL_CONTEXT_PROPERTY_USE_CGL_SHAREGROUP_APPLE;
-    cps[1] = (cl_context_properties)shareGroup;
-    cps[2] = 0;
-
-#else
-#ifdef _WIN32
-    // Windows
-    cl_context_properties * cps = new cl_context_properties[7];
-    cps[0] = CL_GL_CONTEXT_KHR;
-    cps[1] = OpenGLContext;
-    cps[2] = CL_WGL_HDC_KHR;
-    cps[3] = display;
-    cps[4] = CL_CONTEXT_PLATFORM;
-    cps[5] = (cl_context_properties)platform;
-	cps[6] = 0;
-#else
-    cl_context_properties * cps = new cl_context_properties[7];
-    cps[0] = CL_GL_CONTEXT_KHR;
-    cps[1] = OpenGLContext;
-    cps[2] = CL_GLX_DISPLAY_KHR;
-    cps[3] = display;
-    cps[4] = CL_CONTEXT_PLATFORM;
-    cps[5] = (cl_context_properties)platform;
-	cps[6] = 0;
-#endif
-#endif
-    return cps;
-}
 
 DeviceManager* DeviceManager::getInstance() {
     if(mInstance == nullptr) {
@@ -89,20 +51,11 @@ void DeviceManager::deleteInstance() {
 }
 
 std::vector<OpenCLDevice::pointer> DeviceManager::getDevices(DeviceCriteria criteria, bool enableVisualization) {
-    unsigned long * glContext = nullptr;
+    QOpenGLContext* glContext = nullptr;
     if(enableVisualization) {
 #ifdef FAST_MODULE_VISUALIZATION
-        fast::Window::getMainGLContext(); // Still have to create GL context
-		Window::getMainGLContext()->makeCurrent(nullptr); // If not nullptr here, we get NV-GLX missing on display error
-#endif
-#if defined(__APPLE__) || defined(__MACOSX)
-		CGLContextObj appleContext = CGLGetCurrentContext();
-
-		glContext = (unsigned long *)appleContext;
-#elif _WIN32
-        glContext = (unsigned long *)wglGetCurrentContext();
-#else
-        glContext = (long unsigned int*)glXGetCurrentContext();
+		glContext = Window::getMainGLContext();
+        glContext->makeCurrent(Window::getQSurface());
 #endif
         criteria.setCapabilityCriteria(DEVICE_CAPABILITY_OPENGL_INTEROP);
     }
@@ -115,7 +68,11 @@ std::vector<OpenCLDevice::pointer> DeviceManager::getDevices(DeviceCriteria crit
     for(unsigned int i = 0; i < validDevices.size(); i++) {
         std::vector<cl::Device> deviceVector;
         deviceVector.push_back(validDevices[i]);
-        OpenCLDevice * device = new OpenCLDevice(deviceVector, glContext);
+#ifdef FAST_MODULE_VISUALIZATION
+        auto device = new OpenCLDevice(deviceVector, glContext);
+#else
+        auto device = new OpenCLDevice(deviceVector, nullptr);
+#endif
         executionDevices.push_back(OpenCLDevice::pointer(device));
     }
 
@@ -293,8 +250,30 @@ bool DeviceManager::deviceHasOpenGLInteropCapability(const cl::Device &device, c
 #elif _WIN32
         cl_context_properties * cps = createInteropContextProperties(platformId, (cl_context_properties)wglGetCurrentContext(), (cl_context_properties)wglGetCurrentDC());
 #else
-        glContext = (unsigned long*)glXGetCurrentContext();
-        cl_context_properties * cps = createInteropContextProperties(platformId, (cl_context_properties)glContext, (cl_context_properties)glXGetCurrentDisplay());
+        cl_context_properties * cps;
+        auto handle = Window::getMainGLContext()->nativeHandle();
+        if(handle.isNull()) {
+            throw Exception("Unable to get native handle from GL context");
+        } else if(handle.canConvert<QGLXNativeContext>()) {
+            auto glxContext = handle.value<QGLXNativeContext>();
+            auto display = glXGetCurrentDisplay(); // This is missing from QGLNativeContext for some reason
+            cps = createInteropContextProperties(
+                    platformId,
+                    (cl_context_properties)glxContext.context(),
+                    (cl_context_properties)display,
+                    "GLX"
+            );
+        } else if(handle.canConvert<QEGLNativeContext>()){
+            auto eglContext = handle.value<QEGLNativeContext>();
+            cps = createInteropContextProperties(
+                    platformId,
+                    (cl_context_properties)eglContext.context(),
+                    (cl_context_properties)eglContext.display(),
+                    "EGL"
+            );
+        } else {
+            throw Exception("Unknown native GL context");
+        }
 #endif
 #if defined(__APPLE__) || defined(__MACOSX)
 
@@ -616,6 +595,7 @@ std::vector<PlatformDevices> DeviceManager::getDevices(
     std::vector<PlatformDevices> platformDevices;
     for (int i = 0; i < validPlatforms.size(); i++) {
         std::vector<cl::Device> devices;
+        reportInfo() << "--------------------------------------------------" << reportEnd();
     	reportInfo() << "Platform " << i << ": " <<  validPlatforms[i].getInfo<CL_PLATFORM_VENDOR>() << " - " << validPlatforms[i].getInfo<CL_PLATFORM_NAME>() << " - " <<  validPlatforms[i].getInfo<CL_PLATFORM_VERSION>() << Reporter::end();
 
         try {

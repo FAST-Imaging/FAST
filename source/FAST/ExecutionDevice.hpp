@@ -3,6 +3,8 @@
 #include "FAST/Object.hpp"
 #include "RuntimeMeasurementManager.hpp"
 
+class QOpenGLContext;
+
 namespace fast {
 
 class FAST_EXPORT  ExecutionDevice : public Object {
@@ -94,8 +96,7 @@ class FAST_EXPORT  OpenCLDevice : public ExecutionDevice {
         cl::Context getContext();
         cl::Platform getPlatform();
 
-        OpenCLDevice(std::vector<cl::Device> devices, unsigned long* glContext = NULL);
-        unsigned long * getGLContext() { return mGLContext; };
+        OpenCLDevice(std::vector<cl::Device> devices, QOpenGLContext* context);
         std::string getName() {
             return getDevice().getInfo<CL_DEVICE_NAME>();
         }
@@ -107,13 +108,13 @@ class FAST_EXPORT  OpenCLDevice : public ExecutionDevice {
         std::vector<std::string> getExtensions();
     private:
         OpenCLDevice();
-        unsigned long * mGLContext;
         cl::Program writeBinary(std::string filename, std::string buildOptions);
         cl::Program readBinary(std::string filename);
         cl::Program buildProgramFromBinary(std::string filename, std::string buildOptions);
         cl::Program buildSources(cl::Program::Sources source, std::string buildOptions);
         std::tuple<std::string, std::string, std::vector<std::string>> getBinaryName(std::string filename, std::string buildOptions);
 
+        bool m_hasOpenGLInterop = false;
         cl::Context context;
         std::vector<cl::CommandQueue> queues;
         std::map<std::string, int> programNames;
@@ -125,6 +126,9 @@ class FAST_EXPORT  OpenCLDevice : public ExecutionDevice {
         RuntimeMeasurementsManager::pointer runtimeManager;
 
 };
-
+cl_context_properties* createInteropContextProperties(
+            cl_platform_id platform,
+            cl_context_properties OpenGLContext,
+            cl_context_properties display, std::string type = "");
 } // end namespace fast
 
