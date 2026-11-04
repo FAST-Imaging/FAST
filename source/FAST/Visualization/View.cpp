@@ -549,10 +549,7 @@ void View::initializeGL() {
 
 
 void View::paintGL() {
-<<<<<<< HEAD
     m_needsToRedraw = false;
-=======
->>>>>>> a5b0a977... Replaced deprecated QGLWidget and QGLContext.
     mRuntimeManager->startRegularTimer("paint");
 
     if(!mIsIn2DMode && !mVolumeRenderers.empty())
@@ -776,7 +773,6 @@ void View::wheelEvent(QWheelEvent *event) {
 		float currentPosX = (event->position().x()/width())*(mRight - mLeft) + mLeft;
         float currentPosY = (event->position().y()/height())*(mTop - mBottom) + mBottom;
         // First: Zoom towards center
-<<<<<<< HEAD
         float newLeft, newRight, newBottom, newTop;
         if(event->delta() > 0) {
             newLeft = mLeft + targetSizeX*0.5f;
@@ -796,18 +792,6 @@ void View::wheelEvent(QWheelEvent *event) {
         if(m_maximumSize > 0) {
             if(newRight - newLeft > m_maximumSize)
                 return;
-=======
-        if(event->angleDelta().y() > 0) {
-            mLeft = mLeft + targetSizeX*0.5f;
-            mRight = mRight - targetSizeX*0.5f;
-            mBottom = mBottom + targetSizeY * 0.5f;
-            mTop = mTop - targetSizeY*0.5f;
-        } else if(event->angleDelta().y() < 0) {
-            mLeft = mLeft - targetSizeX * 0.5f;;
-            mRight = mRight + targetSizeX*0.5f;
-            mBottom = mBottom - targetSizeY*0.5f;
-            mTop = mTop + targetSizeY*0.5f;
->>>>>>> a5b0a977... Replaced deprecated QGLWidget and QGLContext.
         }
         mLeft = newLeft;
         mRight = newRight;
