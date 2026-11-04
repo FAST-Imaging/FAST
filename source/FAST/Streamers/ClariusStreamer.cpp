@@ -9,6 +9,7 @@
 #else
 #include <dlfcn.h>
 #include <FAST/Visualization/Window.hpp>
+#include <QOpenGLContext>
 #endif
 
 namespace fast {
@@ -252,12 +253,12 @@ void ClariusStreamer::execute() {
         success = connect(mIPAddress.c_str(), mPort, "research", [](int port, int imuPort, int swMatch) {
 #ifndef WIN32
             // For some reason we need to create a GL context here
-            auto widget = new QGLWidget;
-            QGLContext* glContext = new QGLContext(View::getGLFormat(), widget);
-            glContext->create(Window::getSecondaryGLContext());
-            glContext->makeCurrent();
+            auto glContext = new QOpenGLContext();
+            glContext->setShareContext(Window::getSecondaryGLContext());
+            glContext->create();
             if(!glContext->isValid())
                 self->getReporter().error() << "Cast GL CONTEXT WAS VALID!" << self->getReporter().end();
+            glContext->makeCurrent(Window::getQSurface());
 #endif
             if (port > 0) {
                 self->getReporter().info() << "Clarius connect on UDP port " << port << self->getReporter().end();
