@@ -280,7 +280,7 @@ jobs:
   test-cpp:
     name: Run C++ Tests
     needs: [build]
-    runs-on: ubuntu-26.04
+    runs-on: ubuntu-24.04
     steps:
       - name: Install dependencies
         run: |
@@ -310,15 +310,11 @@ jobs:
           cd fast/bin/
           ./downloadTestData
       - name: Run tests
-        env:
-          DISPLAY: ':1'
-          QT_DEBUG_PLUGINS: 1
         run: |
-          Xvfb "$DISPLAY" -screen 0 1024x768x24 &
           cd ${{github.workspace}}
           cd fast_*
           cd fast/bin/
-          ./testFAST ~[visual]
+          xvfb-run ./testFAST ~[visual]
 
   test-python:
     name: Run Python Tests
