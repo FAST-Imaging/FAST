@@ -179,14 +179,13 @@ void ImagePyramidRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatr
     if(!m_bufferThread && m_view != nullptr) {
         // Create thread to load patches
         // Create a GL context for the thread which is sharing with the context of the view
-
         m_bufferThread = std::make_unique<std::thread>([this]() {
             auto context = new QOpenGLContext();
-            context->setShareContext(m_view->context());
+            context->setShareContext(QOpenGLContext::globalShareContext());
             context->create();
             if(!context->isValid())
                 throw Exception("The custom Qt GL context is invalid!");
-            if(!QOpenGLContext::areSharing(context, m_view->context()))
+            if(!QOpenGLContext::areSharing(context, QOpenGLContext::globalShareContext()))
                 throw Exception("The custom Qt GL context is not sharing!");
             context->makeCurrent(Window::getQSurface());
             uint64_t memoryUsage = 0;
