@@ -284,7 +284,7 @@ jobs:
     steps:
       - name: Install dependencies
         run: |
-          sudo apt install libpocl2t64 xvfb libgl1 libopengl0 libusb-1.0-0 libxcb-xinerama0 libxcb-icccm4 libxcb-image0 libegl1 libxcb-keysyms1
+          sudo apt install libpocl2t64 xvfb libgl1 libopengl0 libusb-1.0-0 libxcb-xinerama0 libxcb-icccm4 libxcb-image0 libegl1 libxcb-keysyms1 libxcb-render-util0
       - name: Download artifacts
         uses: actions/download-artifact@v8
         with:

@@ -181,6 +181,7 @@ DeviceManager::DeviceManager() {
         }
     }
 
+    /*
     // Set one random device as default device
     // First try to get one OpenCL device with OpenGL interop:
     try {
@@ -189,7 +190,9 @@ DeviceManager::DeviceManager() {
         // If that fails, try to get a device, without GL interop
         reportInfo() << "No devices with OpenGL interop was found. Looking again for best device WITHOUT OpenGL interop, this may lower visualization performance." << reportEnd();
         setDefaultDevice(getOneOpenCLDevice(false, m_devicePlatform));
-    }
+    }*/
+    reportInfo() << "OpenGL interop is disabled in this build due to random crashes." << reportEnd();
+    setDefaultDevice(getOneOpenCLDevice(false, m_devicePlatform));
 
     auto device = std::static_pointer_cast<OpenCLDevice>(getDefaultDevice());
     reportInfo() << "The following device was selected as main device: " << device->getName() << reportEnd();
@@ -220,15 +223,6 @@ bool DeviceManager::deviceSatisfiesCriteria(OpenCLDevice::pointer device,
 
 
 bool DeviceManager::deviceHasOpenGLInteropCapability(const cl::Device &device, const cl::Platform &platform) {
-#ifdef WIN32
-    reportInfo() << "Windows detected, disabling OpenGL interop due to random crashes when rendering image and segmentation at the same time." << reportEnd();
-    return false;
-#else
-    if(platform.getInfo<CL_PLATFORM_VENDOR>().find("NVIDIA") != std::string::npos) {
-        //reportInfo() << "NVIDIA platform was detected on linux, disabling OpenGL interop due to error Xlib extension NV-GLX missing" << reportEnd();
-        //return false;
-    }
-#endif
     // Get the cl_device_id of the device
     cl_device_id deviceID = device();
     // Get the platform of device
