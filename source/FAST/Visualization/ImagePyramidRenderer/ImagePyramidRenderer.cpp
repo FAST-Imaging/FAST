@@ -165,7 +165,9 @@ int ImagePyramidRenderer::loadTileTexture(std::string tileID) {
         m_view->scheduleRedraw(false);
     }
     */
-    m_view->scheduleRedraw(false);
+    auto view = m_view.lock();
+    if(view)
+        view->scheduleRedraw(false);
     return compressedImageSize;
 }
 
@@ -176,7 +178,7 @@ void ImagePyramidRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatr
     if(dataToRender.empty())
         return;
 
-    if(!m_bufferThread && m_view != nullptr) {
+    if(!m_bufferThread && !m_view.expired()) {
         // Create thread to load patches
         // Create a GL context for the thread which is sharing with the context of the view
         m_bufferThread = std::make_unique<std::thread>([this]() {
@@ -340,7 +342,7 @@ void ImagePyramidRenderer::draw(Matrix4f perspectiveMatrix, Matrix4f viewingMatr
                     continue;
 
                 uint textureID;
-                if(m_view != nullptr) {
+                if(!m_view.expired()) {
                     // Is patch in cache?
                     bool textureLoaded = false;
                     {

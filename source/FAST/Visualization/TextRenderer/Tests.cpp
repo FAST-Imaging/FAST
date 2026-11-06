@@ -18,7 +18,6 @@ TEST_CASE("Text renderer", "[fast][TextRenderer][visual]") {
 
 
     auto window = SimpleWindow::New();
-    renderer->setView(window->getView());
     window->addRenderer(renderer);
     window->getView()->setBackgroundColor(Color::Black());
     window->set2DMode();
@@ -44,7 +43,6 @@ TEST_CASE("Text renderer positioning", "[fast][TextRenderer][visual]") {
 
 
     auto window = SimpleWindow::New();
-    renderer->setView(window->getView());
     window->addRenderer(imageRenderer);
     window->addRenderer(renderer);
     window->set2DMode();
