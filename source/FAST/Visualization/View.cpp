@@ -20,7 +20,7 @@ namespace fast {
 
 void View::addRenderer(Renderer::pointer renderer) {
     std::lock_guard<std::mutex> lock(m_mutex);
-    renderer->setView(std::dynamic_pointer_cast<View>(mPtr.lock()));
+    renderer->setView(this);
     if(renderer->is2DOnly())
         mIsIn2DMode = true;
     if(renderer->is3DOnly())
@@ -929,7 +929,7 @@ void View::drawScalebar() {
     m_lineRenderer->setDrawJoints(false);
     m_lineRenderer->connect(mesh);
     m_lineRenderer->run();
-    m_lineRenderer->setView(std::dynamic_pointer_cast<View>(mPtr.lock()));
+    m_lineRenderer->setView(this);
     m_lineRenderer->draw(mPerspectiveMatrix, m3DViewingTransformation.matrix(), zNear, zFar, true, width(), height());
     m_lineRenderer->postDraw();
 
@@ -947,7 +947,7 @@ void View::drawScalebar() {
             );
     m_textRenderer->connect(text);
     m_textRenderer->run();
-    m_textRenderer->setView(std::dynamic_pointer_cast<View>(mPtr.lock()));
+    m_textRenderer->setView(this);
     m_textRenderer->draw(mPerspectiveMatrix, m3DViewingTransformation.matrix(), zNear, zFar, true, width(), height());
     m_textRenderer->postDraw();
 

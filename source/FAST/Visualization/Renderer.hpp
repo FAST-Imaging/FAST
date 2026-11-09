@@ -58,7 +58,7 @@ class FAST_EXPORT  Renderer : public ProcessObject, protected QOpenGLFunctions_3
          * @return
          */
         virtual bool isDisabled() const;
-        void setView(std::shared_ptr<View> view);
+        void setView(View* view);
         bool is2DOnly() const;
         bool is3DOnly() const;
         void loadAttributes() override;
@@ -114,7 +114,7 @@ class FAST_EXPORT  Renderer : public ProcessObject, protected QOpenGLFunctions_3
         friend class View;
         friend class RenderToImage;
 
-        std::weak_ptr<View> m_view;
+        View* m_view;
     private:
 
         /**

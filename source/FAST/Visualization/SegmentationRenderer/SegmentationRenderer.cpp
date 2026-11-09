@@ -170,9 +170,8 @@ int SegmentationRenderer::loadTileTexture(std::string tileID) {
         mPyramidTexturesToRender[tileID] = textureID;
     }
 
-    auto view = m_view.lock();
-    if(view)
-        view->scheduleRedraw(false);
+    if(m_view != nullptr)
+        m_view->scheduleRedraw(false);
 
     return compressedImageSize;
 }
@@ -186,7 +185,7 @@ void SegmentationRenderer::drawPyramid(std::shared_ptr<SpatialDataObject> dataTo
         glUniformBlockBinding(getShaderProgram(), colorsIndex, 0);
         glBindBufferBase(GL_UNIFORM_BUFFER, 0, m_colorsUBO);
 
-        if(!m_bufferThread && !m_view.expired()) {
+        if(!m_bufferThread && m_view != nullptr) {
             // Create thread to load patches
             // Create a GL context for the thread which is sharing with the context of the view
             m_bufferThread = std::make_unique<std::thread>([this]() {
@@ -375,7 +374,7 @@ void SegmentationRenderer::drawPyramid(std::shared_ptr<SpatialDataObject> dataTo
 
 
                 uint textureID;
-                if(!m_view.expired()) {
+                if(m_view != nullptr) {
                     // Is patch in cache?
                     bool textureReady = false;
                     {

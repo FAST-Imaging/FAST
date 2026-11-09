@@ -26,7 +26,7 @@ uint Renderer::addInputConnection(DataChannel::pointer port) {
     return nr;
 }
 
-void Renderer::setView(std::shared_ptr<View> view) {
+void Renderer::setView(View* view) {
     m_view = view;
 }
 
