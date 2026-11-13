@@ -221,6 +221,18 @@ void DataHub::downloadAndExtractZipFile(const Item& item, const std::string& des
     eventLoop->exec();
 }
 
+// Item ids come from the hub JSON and are used as a directory name under the
+// storage root. Reject anything that could escape it.
+static bool isValidItemId(const std::string &id) {
+    if (id.empty() || id == "." || id == "..")
+        return false;
+    if (id.find('/') != std::string::npos || id.find('\\') != std::string::npos)
+        return false;
+    if (id.find("..") != std::string::npos)
+        return false;
+    return true;
+}
+
 DataHub::Item::Item(QJsonObject json) {
     m_json = json;
     id = json["id"].toString().toStdString();
@@ -360,6 +372,10 @@ DataHub::Download DataHub::download(std::string itemID, bool force) {
         toDownload.pop();
         for(const auto& needs : itemObject.needs) {
             toDownload.push(needs);
+        }
+        if(!isValidItemId(itemObject.id)) {
+            std::cerr << "Skipping data hub item with invalid id: '" << itemObject.id << "'" << std::endl;
+            continue;
         }
         auto folder = join(m_storageDirectory, itemObject.id);
         auto downloadName = "'" + itemObject.name + "'";
