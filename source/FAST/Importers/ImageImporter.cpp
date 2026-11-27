@@ -28,20 +28,24 @@ void ImageImporter::execute() {
         std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(file), {});
         JPEGXLCompression jxl;
         int width, height;
+        mRuntimeManager->startRegularTimer("jxl_decompression");
         void* data = jxl.decompress(buffer.data(), buffer.size()*sizeof(uchar), &width, &height);
+        mRuntimeManager->stopRegularTimer("jxl_decompression");
         reportInfo() << "Decompressed JPEGXL image for size " << width << " " << height << Reporter::end();
         std::unique_ptr<uchar[]> decompressedData((uchar*)data); // Use unique_ptr to avoid copy
         auto image = Image::create(width, height, TYPE_UINT8, 3, std::move(decompressedData));
         addOutputData(0, image);
-    /*} else if(ext == "jpg" || ext == "jpeg") {
+    } else if(ext == "jpg" || ext == "jpeg") {
         std::ifstream file(m_filename, std::ios::in | std::ios::binary);
         std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(file), {});
         JPEGCompression jpg;
         int width, height;
+        mRuntimeManager->startRegularTimer("jpeg_decompression");
         void* data = jpg.decompress(buffer.data(), buffer.size()*sizeof(uchar), &width, &height);
+        mRuntimeManager->stopRegularTimer("jpeg_decompression");
         std::unique_ptr<uchar[]> decompressedData((uchar*)data); // Use unique_ptr to avoid copy
         auto image = Image::create(width, height, TYPE_UINT8, 3, std::move(decompressedData));
-        addOutputData(0, image);*/
+        addOutputData(0, image);
     } else {
         uchar* convertedPixelData;
         // Load image from disk using Qt
